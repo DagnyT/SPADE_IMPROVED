@@ -8,8 +8,9 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 from models.networks.normalization import get_nonspade_norm_layer
+from models.networks.base_network import BaseNetwork
 
-class MultiscaleDiscriminator():
+class MultiscaleDiscriminator(BaseNetwork):
 
     def __init__(self, cfg):
         super().__init__()
@@ -47,12 +48,7 @@ class MultiscaleDiscriminator():
         return result
 
 # Defines the PatchGAN discriminator with the specified arguments.
-class NLayerDiscriminator():
-    @staticmethod
-    def modify_commandline_options(parser, is_train):
-        parser.add_argument('--n_layers_D', type=int, default=4,
-                            help='# layers in each discriminator')
-        return parser
+class NLayerDiscriminator(BaseNetwork):
 
     def __init__(self, cfg):
         super().__init__()

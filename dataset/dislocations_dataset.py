@@ -1,7 +1,9 @@
 from PIL import Image
+from torchvision import transforms
 
 import numpy as np
 import os
+import torch
 
 from albumentations import (
     HorizontalFlip, IAAPerspective, ShiftScaleRotate, CLAHE, RandomRotate90,
@@ -96,10 +98,12 @@ class DislocationsDataset():
             augmented_l = augmentation(**data_l)
 
             image, label_tensor = augmented_l["image"], augmented_l["mask"]
-            label_tensor = Image.fromarray(label_tensor)
+            label = Image.fromarray(label_tensor)
 
-        label_tensor = self.convert_labels(np.array(label_tensor))
-        image_tensor = Image.fromarray(image)/255.0
+        label = self.convert_labels(np.array(label))
+
+        image_tensor = torch.from_numpy(np.array(image))
+        label_tensor = torch.from_numpy(label).unsqueeze(0)
 
         input_dict = {'label': label_tensor,
                       'image': image_tensor,

@@ -65,7 +65,7 @@ class SpadeModel(torch.nn.Module):
         save_filename = '%s_net_%s.pth' % (epoch, label)
         save_path = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], save_filename)
         torch.save(net.cpu().state_dict(), save_path)
-        if len(cfg['TRAINING']['GPU_ID']) and torch.cuda.is_available():
+        if cfg['TRAINING']['GPU_ID'] == 0 and torch.cuda.is_available():
             net.cuda()
 
     def load_network(self, net, label, epoch, cfg):
@@ -239,7 +239,7 @@ class SpadeModel(torch.nn.Module):
         return eps.mul(std) + mu
 
     def use_gpu(self):
-        return len(self.cfg['TRAINING']['GPU_ID']) > 0
+        return self.cfg['TRAINING']['GPU_ID']
 
     def update_learning_rate(self, optimizer_G, optimizer_D, epoch):
         if epoch > self.cfg['TRAINING']['N_ITER']:

@@ -1,6 +1,6 @@
 INPUT:
-  TRAIN: '/DISLOCATIONS/'
-  VAL: '/DISLOCATIONS/'
+  TRAIN: '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/'
+  VAL: '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/'
   TEST: '/DISLOCATIONS/'
 
 USE_VAE: True
@@ -46,7 +46,7 @@ TRAINING:
     NUM_WORKERS: 8
 
     NORM_E: 'spectralinstance'
-    NORM_G: 'spectralinstance'
+    NORM_G: 'spectralspadesyncbatch3x3'
     NORM_D: 'spectralinstance'
 
     CROP_SIZE: 512

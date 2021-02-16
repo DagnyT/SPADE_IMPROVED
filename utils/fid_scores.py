@@ -5,7 +5,6 @@ import time
 from scipy import linalg # For numpy FID
 from pathlib import Path
 from PIL import Image
-import models.models as models
 from utils.fid_folder.inception import InceptionV3
 import matplotlib.pyplot as plt
 

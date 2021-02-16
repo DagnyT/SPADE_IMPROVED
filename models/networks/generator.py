@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 import torch.nn.utils.spectral_norm as spectral_norm
 from models.networks.normalization import SPADE
-
+from models.networks.base_network import BaseNetwork
 from linear_attention_transformer import ImageLinearAttention
 
 class Residual(nn.Module):
@@ -110,7 +110,7 @@ class SPADEResnetBlock(nn.Module):
     def actvn(self, x):
         return F.leaky_relu(x, 2e-1)
 
-class SPADEGenerator():
+class SPADEGenerator(BaseNetwork):
 
     def __init__(self, cfg):
         super().__init__()

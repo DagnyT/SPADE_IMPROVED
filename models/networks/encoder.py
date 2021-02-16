@@ -7,9 +7,10 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from models.networks.normalization import get_nonspade_norm_layer
+from models.networks.base_network import BaseNetwork
 
 
-class ConvEncoder():
+class ConvEncoder(BaseNetwork):
     """ Same architecture as the image discriminator """
 
     def __init__(self, cfg):

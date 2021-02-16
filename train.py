@@ -72,7 +72,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Training improved SPADE model')
-    parser.add_argument('--path_ymlfile', type=str,default='configs/training.yml', help='Path to yaml file.')
+    parser.add_argument('--path_ymlfile', type=str, default='configs/training.yaml', help='Path to yaml file.')
     opt = parser.parse_args()
 
     with open(opt.path_ymlfile, 'r') as ymlfile:
