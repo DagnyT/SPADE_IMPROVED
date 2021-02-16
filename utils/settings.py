@@ -13,7 +13,6 @@ def initialize_cuda_and_logging (cfg):
     MODELS_DIR = os.path.join(cfg['LOGGING']['LOG_DIR'],cfg['TRAINING']['EXPERIMENT_NAME'],cfg['TRAINING']['MODEL_DIR'])
     IMAGES_DIR = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'],cfg['LOGGING']['IMG_DIR'],)
 
-    cfg['LOGGING']['LOG_DIR'] = LOG_DIR
     cfg['TRAINING']['MODEL_DIR'] = MODELS_DIR
     cfg['LOGGING']['IMAGES_DIR'] = IMAGES_DIR
 

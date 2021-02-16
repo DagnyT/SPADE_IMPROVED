@@ -83,13 +83,9 @@ if __name__ == '__main__':
     train_loader, val_loader = make_data_loader(cfg)
 
     model = build_model(cfg)
-    model.module = model
-    model.to(_device)
-
     optimizer_G, optimizer_D = model.create_optimizers(cfg)
-
     visualizer = visualizer.Visualizer(cfg)
-
+    print('visualizer is loaded')
     fid_computer = fid_scores.fid_pytorch(cfg, val_loader)
 
     logger, tb_logger = build_logger(cfg)
@@ -104,3 +100,5 @@ if __name__ == '__main__':
         logger,
         tb_logger,
         _device)
+
+    print('Training was successfully finished.')

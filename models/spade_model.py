@@ -87,9 +87,9 @@ class SpadeModel(torch.nn.Module):
     ############################################################################
 
     def initialize_networks(self, cfg):
+
         netG = SPADEGenerator(cfg)
         netD = MultiscaleDiscriminator(cfg) if cfg['IS_TRAINING'] else None
-
         netE = ConvEncoder(cfg) if cfg['USE_VAE'] else None
 
         if not cfg['IS_TRAINING'] or cfg['CONTINUE_TRAINING']:
@@ -98,6 +98,7 @@ class SpadeModel(torch.nn.Module):
                 netD = self.load_network(netD, 'D', cfg['TRAINING']['WHICH_EPOCH'], cfg)
             if cfg['USE_VAE']:
                 netE = self.load_network(netE, 'E', cfg['TRAINING']['WHICH_EPOCH'], cfg)
+        print('Networks were initialized ')
 
         return netG, netD, netE
 

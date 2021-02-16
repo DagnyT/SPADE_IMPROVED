@@ -23,7 +23,7 @@ TRAINING:
     LAMBDA_KLD: 0.05
     N_ITER: 200
     N_ITER_DECAY: 100
-    TF_LOG: True
+    TF_LOG: False
     NO_HTML: True
     DISPLAY_WINSIZE: 400
     GPU_ID: 0

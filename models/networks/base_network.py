@@ -53,3 +53,5 @@ class BaseNetwork(nn.Module):
         for m in self.children():
             if hasattr(m, 'init_weights'):
                 m.init_weights(init_type, gain)
+
+        print('Init is succesfully done')

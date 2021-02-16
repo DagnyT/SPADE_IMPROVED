@@ -153,6 +153,8 @@ class SPADEGenerator(BaseNetwork):
 
         self.up = nn.Upsample(scale_factor=2)
 
+        self.print_network()
+
     def compute_latent_vector_size(self, cfg):
         if cfg['TRAINING']['NUM_UPSAMPLING_LAYERS'] == 'normal':
             num_up_layers = 5

@@ -34,6 +34,7 @@ class ConvEncoder(BaseNetwork):
 
         self.actvn = nn.LeakyReLU(0.2, False)
         self.cfg = cfg
+        self.print_network()
 
     def forward(self, x):
         if x.size(2) != 256 or x.size(3) != 256:

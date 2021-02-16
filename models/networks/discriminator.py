@@ -19,6 +19,7 @@ class MultiscaleDiscriminator(BaseNetwork):
         for i in range(cfg['TRAINING']['NUM_D']):
             subnetD = self.create_single_discriminator(cfg)
             self.add_module('discriminator_%d' % i, subnetD)
+        self.print_network()
 
     def create_single_discriminator(self, cfg):
         subarch = self.cfg['TRAINING']['NET_D_SUB_ARCH']

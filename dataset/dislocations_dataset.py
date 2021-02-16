@@ -110,7 +110,7 @@ class DislocationsDataset():
                       'path': image_path }
 
         self.postprocess(input_dict)
-
+        print(input_dict)
         return input_dict
 
     def postprocess(self, input_dict):
