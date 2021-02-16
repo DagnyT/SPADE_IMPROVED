@@ -7,8 +7,8 @@ def make_data_loader(cfg):
 
     if (cfg['TRAINING']['TRAINING_SET'] == 'dislocations'):
 
-        train_set = DislocationsDataset(cfg, train=True)
-        val_set   = DislocationsDataset(cfg, train=False)
+        train_set = DislocationsDataset(cfg, 'train')
+        val_set   = DislocationsDataset(cfg, 'val')
 
     else:
         raise NotImplementedError

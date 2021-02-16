@@ -1,6 +1,7 @@
 from PIL import Image
 
 import numpy as np
+import os
 
 from albumentations import (
     HorizontalFlip, IAAPerspective, ShiftScaleRotate, CLAHE, RandomRotate90,
@@ -11,14 +12,32 @@ from albumentations import (
 
 class DislocationsDataset():
 
-    def get_paths(self, cfg):
-        label_paths, image_paths = None, None
-        return label_paths, image_paths
+    def get_paths(self, cfg, mode):
 
-    def __init__(self, cfg, is_train = True):
+        if mode == 'train':
+            path = cfg['INPUT']['TRAIN']
+        elif mode == 'val':
+            path = cfg['INPUT']['VAL']
+        else:
+            path = cfg['INPUT']['TEST']
+
+        path_img = os.path.join(path, mode+"_img")
+        path_lab = os.path.join(path, mode+"_label")
+
+        images , labels = sorted(os.listdir(path_img)), sorted(os.listdir(path_lab))
+
+        assert len(images)  == len(labels), "different len of images and labels %s - %s" % (len(images), len(labels))
+
+        return images, labels
+
+    def __init__(self, cfg, mode):
+
         self.cfg = cfg
-        self.is_train = is_train
-        self.label_paths, self.image_paths = self.get_paths(cfg)
+        self.is_train = False
+        if mode == 'train':
+            self.is_train = True
+
+        self.label_paths, self.image_paths = self.get_paths(cfg, mode)
         size = len(self.label_paths)
         self.dataset_size = size
 
