@@ -149,7 +149,7 @@ class SPADEGenerator(BaseNetwork):
             self.up_4 = SPADEResnetBlock(1 * nf, nf // 2, cfg)
             final_nc = nf // 2
 
-        self.conv_img = nn.Conv2d(final_nc, 3, 3, padding=1)
+        self.conv_img = nn.Conv2d(final_nc, cfg['TRAINING']['OUTPUT_NC'], 3, padding=1)
 
         self.up = nn.Upsample(scale_factor=2)
 

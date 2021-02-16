@@ -44,7 +44,7 @@ TRAINING:
     OPTIMIZER: Adam
     BETA1: 0.0
     BETA2: 0.9
-    NO_TTUR: True
+    NO_TTUR: False
     SAVE_MODEL_STEP: 1
     WHICH_EPOCH: 'latest'
     NUM_WORKERS: 8
@@ -92,5 +92,6 @@ LOGGING:
 
   LOG_INTERVAL: 10
   PLOT_INTERVALS: 10
+  SAVE_EVERY: 10
   IMG_DIR: 'images/'
   LOG_DIR: 'checkpoints/'

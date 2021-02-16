@@ -57,9 +57,10 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                                        ('real_image', data['image'])])
                 visualizer.display_current_results(visuals, epoch, cur_iter)
 
+        if epoch % cfg['LOGGING']['SAVE_EVERY'] == 10:
+            model.save(epoch)
+            print('model is saved: {} '.format(epoch))
 
-        model.save(epoch)
-        print('model is saved: {} '.format(epoch))
         model.update_learning_rate(optimizer_G, optimizer_D, epoch)
 
     print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
