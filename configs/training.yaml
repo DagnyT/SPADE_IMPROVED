@@ -14,14 +14,14 @@ TRAINING:
     TRAINING_SET: 'dislocations'
     EXPERIMENT_NAME: 'baseline'
     LABEL_NC: 4
-    CONTAINS_DONT_CARE: True
+    CONTAINS_DONT_CARE: False
     NO_INSTANCE: True
     MODEL_DIR: 'models'
     MODEL: 'init'
     CUDA: True
-    NO_GAN_FEAT_LOSS: True
+    NO_GAN_FEAT_LOSS: False
     GAN_MODE: 'hinge'
-    NO_VGG_LOSS: True
+    NO_VGG_LOSS: False
     LAMBDA_FEAT: 10.0
     LAMBDA_VGG: 10.0
     LAMBDA_KLD: 0.05
@@ -81,6 +81,7 @@ TEST:
 
 VISUALIZER:
     ENABLE: True
+    LOG_INTERVAL: 10
 
 LOGGING:
 
@@ -89,7 +90,7 @@ LOGGING:
   ENABLE_VISUALIZING: True
   FID: 1000
 
-  LOG_INTERVAL: 100
+  LOG_INTERVAL: 10
   PLOT_INTERVALS: 10
   IMG_DIR: 'images/'
   LOG_DIR: 'checkpoints/'

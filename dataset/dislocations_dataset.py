@@ -31,10 +31,7 @@ class DislocationsDataset():
     def __init__(self, cfg, mode):
 
         self.cfg = cfg
-        self.is_train = False
-        if mode == 'train':
-            self.is_train = True
-            self.mode = mode
+        self.mode = mode
 
         self.images, self.path_img = self.get_paths(cfg, mode)
         self.dataset_size = len(self.images)
@@ -89,7 +86,7 @@ class DislocationsDataset():
         image = transforms.functional.resize(image, (self.cfg['TRAINING']['IMAGE_SIZE_W'], self.cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
         label = transforms.functional.resize(label, (self.cfg['TRAINING']['IMAGE_SIZE_W'], self.cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
 
-        if self.is_train:
+        if self.mode == 'train':
 
             augmentation = self.strong_aug(p=0.4)
             data_l = {"image": np.array(image), "mask": np.array(label).squeeze()}

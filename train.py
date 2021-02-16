@@ -23,7 +23,6 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
     if cfg['LOGGING']['ENABLE_LOGGING']:
         logger.log_string(cfg)
     start_epoch, end_epoch = cfg['TRAINING']['START_EPOCH'], cfg['TRAINING']['N_ITER']+cfg['TRAINING']['N_ITER_DECAY']
-    count = 0
     for epoch in tqdm(range(start_epoch, end_epoch + 1),total = end_epoch + 1):
 
         print('This is %d-th epoch' % epoch)
@@ -32,26 +31,26 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 
             cur_iter = epoch * len(train_loader) + batch_idx
 
-            model.netG.zero_grad()
+            optimizer_G.zero_grad()
             loss_G, generated = model(data, "generator")
             g_loss = sum(loss_G.values()).mean()
             g_loss.backward()
             optimizer_G.step()
 
-            model.netD.zero_grad()
+            optimizer_D.zero_grad()
             loss_D = model(data, "discriminator")
             d_loss = sum(loss_D.values()).mean()
             d_loss.backward()
             optimizer_D.step()
 
-            if cfg['LOGGING']['ENABLE_LOGGING'] and epoch % cfg['LOGGING']['LOG_INTERVAL'] == 0:
+            if cfg['LOGGING']['ENABLE_LOGGING'] and cur_iter % cfg['LOGGING']['LOG_INTERVAL'] == 0:
                 print('Train', epoch, cur_iter, g_loss, d_loss)
             #     tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
 
             # if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
             #     is_best = fid_computer.update(model, cur_iter)
 
-            if cfg['VISUALIZER']['ENABLE']:
+            if cfg['VISUALIZER']['ENABLE'] and cur_iter % cfg['VISUALIZER']['LOG_INTERVAL'] == 0:
 
                 visuals = OrderedDict([('input_label', data['label']),
                                        ('synthesized_image', generated),

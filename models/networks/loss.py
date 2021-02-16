@@ -138,7 +138,6 @@ class MeanShift(nn.Conv2d):
         std = torch.Tensor(norm_std)
         self.weight.data = torch.eye(3).view(3, 3, 1, 1) / std.view(3, 1, 1, 1)
         self.bias.data = sign * rgb_range * torch.Tensor(norm_mean) / std
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         for p in self.parameters():
             p.requires_grad = False
@@ -152,18 +151,14 @@ class VGGLoss(nn.Module):
         self.criterion = nn.L1Loss()
         self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
 
-        self.normalization_mean = [0.485, 0.456, 0.406]
-        self.normalization_std = [0.229, 0.224, 0.225]
-        self.transform = MeanShift(norm_mean = self.normalization_mean, norm_std = self.normalization_std).to(self.device)
-
     def forward(self, x, y):
-
         x_vgg, y_vgg = self.vgg(x), self.vgg(y)
         loss = 0
         for i in range(len(x_vgg)):
             loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())
 
         return loss
+
 
 def get_sobel_kernel_3x3() -> torch.Tensor:
     """Utility function that returns a sobel kernel of 3x3"""
