@@ -6,9 +6,11 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import os
 import ntpath
 import time
-from . import util
-from . import html
+from utils import html, util
 import scipy.misc
+import numpy as np
+from PIL import Image
+
 try:
     from StringIO import StringIO  # Python 2.7
 except ImportError:
@@ -16,24 +18,24 @@ except ImportError:
 
 class Visualizer():
     def __init__(self, cfg):
-        self.opt = opt
-        self.tf_log = opt.isTrain and opt.tf_log
-        self.use_html = opt.isTrain and not opt.no_html
-        self.win_size = opt.display_winsize
-        self.name = opt.name
+        self.cfg = cfg
+        self.tf_log = cfg['IS_TRAINING'] and cfg['TRAINING']['TF_LOG']
+        self.use_html = cfg['IS_TRAINING'] and not cfg['TRAINING']['NO_HTML']
+        self.win_size = cfg['TRAINING']['DISPLAY_WINSIZE']
+        self.name = cfg['TRAINING']['EXPERIMENT_NAME']
         if self.tf_log:
             import tensorflow as tf
             self.tf = tf
-            self.log_dir = os.path.join(opt.checkpoints_dir, opt.name, 'logs')
+            self.log_dir = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], 'logs')
             self.writer = tf.summary.FileWriter(self.log_dir)
 
         if self.use_html:
-            self.web_dir = os.path.join(opt.checkpoints_dir, opt.name, 'web')
+            self.web_dir = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], 'web')
             self.img_dir = os.path.join(self.web_dir, 'images')
             print('create web directory %s...' % self.web_dir)
             util.mkdirs([self.web_dir, self.img_dir])
-        if opt.isTrain:
-            self.log_name = os.path.join(opt.checkpoints_dir, opt.name, 'loss_log.txt')
+        if cfg['IS_TRAINING']:
+            self.log_name = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], 'loss_log.txt')
             with open(self.log_name, "a") as log_file:
                 now = time.strftime("%c")
                 log_file.write('================ Training Loss (%s) ================\n' % now)
@@ -127,9 +129,9 @@ class Visualizer():
 
     def convert_visuals_to_numpy(self, visuals):
         for key, t in visuals.items():
-            tile = self.opt.batchSize > 8
+            tile = self.cfg['TRAINING']['BATCH_SIZE'] > 8
             if 'input_label' == key:
-                t = util.tensor2label(t, self.opt.label_nc + 2, tile=tile)
+                t = util.tensor2label(t, self.cfg['TRAINING']['LABEL_NC'] + 2, tile=tile)
             else:
                 t = util.tensor2im(t, tile=tile)
             visuals[key] = t

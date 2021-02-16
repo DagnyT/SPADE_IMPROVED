@@ -6,6 +6,9 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import torch
 import os
 import models.networks as networks
+from models.networks.encoder import ConvEncoder
+from models.networks.generator import SPADEGenerator
+from models.networks.discriminator import MultiscaleDiscriminator
 
 class SpadeModel(torch.nn.Module):
 
@@ -42,58 +45,59 @@ class SpadeModel(torch.nn.Module):
 
     def create_optimizers(self, cfg):
         G_params = list(self.netG.parameters())
-        if opt.use_vae:
+        if cfg['USE_VAE']:
             G_params += list(self.netE.parameters())
-        if opt.isTrain:
+        if cfg['IS_TRAINING']:
             D_params = list(self.netD.parameters())
 
-        beta1, beta2 = opt.beta1, opt.beta2
-        if opt.no_TTUR:
-            G_lr, D_lr = opt.lr, opt.lr
+        beta1, beta2 = cfg['TRAINING']['BETA1'], cfg['TRAINING']['BETA2']
+        if cfg['TRAINING']['NO_TTUR']:
+            G_lr, D_lr = cfg['TRAINING']['LR'], cfg['TRAINING']['LR']
         else:
-            G_lr, D_lr = opt.lr / 2, opt.lr * 2
+            G_lr, D_lr = cfg['TRAINING']['LR']/ 2, cfg['TRAINING']['LR'] * 2
 
         optimizer_G = torch.optim.Adam(G_params, lr=G_lr, betas=(beta1, beta2))
         optimizer_D = torch.optim.Adam(D_params, lr=D_lr, betas=(beta1, beta2))
 
         return optimizer_G, optimizer_D
 
-    def save_network(net, label, epoch, opt):
+    def save_network(self, net, label, epoch, cfg):
         save_filename = '%s_net_%s.pth' % (epoch, label)
-        save_path = os.path.join(opt.checkpoints_dir, opt.name, save_filename)
+        save_path = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], save_filename)
         torch.save(net.cpu().state_dict(), save_path)
-        if len(opt.gpu_ids) and torch.cuda.is_available():
+        if len(cfg['TRAINING']['GPU_ID']) and torch.cuda.is_available():
             net.cuda()
 
-    def load_network(net, label, epoch, opt):
+    def load_network(self, net, label, epoch, cfg):
         save_filename = '%s_net_%s.pth' % (epoch, label)
-        save_dir = os.path.join(opt.checkpoints_dir, opt.name)
+        save_dir = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'])
         save_path = os.path.join(save_dir, save_filename)
         weights = torch.load(save_path)
         net.load_state_dict(weights)
         return net
 
     def save(self, epoch):
-        self.save_network(self.netG, 'G', epoch, self.opt)
-        self.save_network(self.netD, 'D', epoch, self.opt)
-        if self.opt.use_vae:
-            self.save_network(self.netE, 'E', epoch, self.opt)
+        self.save_network(self.netG, 'G', epoch, self.cfg)
+        self.save_network(self.netD, 'D', epoch, self.cfg)
+        if self.cfg['USE_VAE']:
+            self.save_network(self.netE, 'E', epoch, self.cfg)
 
     ############################################################################
     # Private helper methods
     ############################################################################
 
-    def initialize_networks(self, opt):
-        netG = networks.define_G(opt)
-        netD = networks.define_D(opt) if opt.isTrain else None
-        netE = networks.define_E(opt) if opt.use_vae else None
+    def initialize_networks(self, cfg):
+        netG = SPADEGenerator(cfg)
+        netD = MultiscaleDiscriminator(cfg) if cfg['IS_TRAINING'] else None
 
-        if not opt.isTrain or opt.continue_train:
-            netG = self.load_network(netG, 'G', opt.which_epoch, opt)
-            if opt.isTrain:
-                netD = self.load_network(netD, 'D', opt.which_epoch, opt)
-            if opt.use_vae:
-                netE = self.load_network(netE, 'E', opt.which_epoch, opt)
+        netE = ConvEncoder(cfg) if cfg['USE_VAE'] else None
+
+        if not cfg['IS_TRAINING'] or cfg['CONTINUE_TRAINING']:
+            netG = self.load_network(netG, 'G', cfg['TRAINING']['WHICH_EPOCH'], cfg)
+            if cfg['IS_TRAINING']:
+                netD = self.load_network(netD, 'D', cfg['TRAINING']['WHICH_EPOCH'], cfg)
+            if cfg['USE_VAE']:
+                netE = self.load_network(netE, 'E', cfg['TRAINING']['WHICH_EPOCH'], cfg)
 
         return netG, netD, netE
 
@@ -111,8 +115,8 @@ class SpadeModel(torch.nn.Module):
         # create one-hot label map
         label_map = data['label']
         bs, _, h, w = label_map.size()
-        nc = self.opt.label_nc + 1 if self.opt.contain_dontcare_label \
-            else self.opt.label_nc
+        nc = self.cfg['TRAINING']['LABEL_NC'] + 1 if self.cfg['TRAINING']['CONTAINS_DONT_CARE'] \
+            else self.cfg['TRAINING']['LABEL_NC']
         input_label = self.FloatTensor(bs, nc, h, w).zero_()
         input_semantics = input_label.scatter_(1, label_map.long(), 1.0)
 
@@ -122,11 +126,11 @@ class SpadeModel(torch.nn.Module):
         G_losses = {}
 
         fake_image, KLD_loss, Encoder_Loss = self.generate_fake(
-            input_semantics, real_image, compute_kld_loss=self.opt.use_vae)
+            input_semantics, real_image, compute_kld_loss=self.cfg['USE_VAE'])
 
         # G_losses['GradLoss'] = self.GradLoss(fake_image, real_image)*10
 
-        if self.opt.use_vae:
+        if self.cfg['USE_VAE']:
             G_losses['KLD'] = KLD_loss
             G_losses['Encoder_Loss'] = Encoder_Loss*100
 
@@ -136,7 +140,7 @@ class SpadeModel(torch.nn.Module):
         G_losses['GAN'] = self.criterionGAN(pred_fake, True,
                                             for_discriminator=False)
 
-        if not self.opt.no_ganFeat_loss:
+        if not self.cfg['TRAINING']['NO_GAN_FEAT_LOSS']:
             num_D = len(pred_fake)
             GAN_Feat_loss = self.FloatTensor(1).fill_(0)
             for i in range(num_D):  # for each discriminator
@@ -145,12 +149,12 @@ class SpadeModel(torch.nn.Module):
                 for j in range(num_intermediate_outputs):  # for each layer output
                     unweighted_loss = self.criterionFeat(
                         pred_fake[i][j], pred_real[i][j].detach())
-                    GAN_Feat_loss += unweighted_loss * self.opt.lambda_feat / num_D
+                    GAN_Feat_loss += unweighted_loss * self.cfg['TRAINING']['LAMBDA_FEAT'] / num_D
             G_losses['GAN_Feat'] = GAN_Feat_loss
 
-        if not self.opt.no_vgg_loss:
+        if not self.cfg['TRAINING']['NO_VGG_LOSS']:
             G_losses['VGG'] = self.criterionVGG(fake_image, real_image) \
-                * self.opt.lambda_vgg
+                * self.cfg['TRAINING']['LAMBDA_VGG']
 
         return G_losses, fake_image
 
@@ -179,18 +183,18 @@ class SpadeModel(torch.nn.Module):
     def generate_fake(self, input_semantics, real_image, compute_kld_loss=False):
         z = None
         KLD_loss = None
-        if self.opt.use_vae:
+        if self.cfg['USE_VAE']:
             z, mu, logvar = self.encode_z(real_image)
             if compute_kld_loss:
-                KLD_loss = self.KLDLoss(mu, logvar) * self.opt.lambda_kld
+                KLD_loss = self.KLDLoss(mu, logvar) * self.cfg['TRAINING']['LAMBDA_KLD']
 
         fake_image = self.netG(input_semantics, z=z)
         z_fake, mu_fake, logvar_fake = self.encode_z(fake_image)
 
         Encoder_Loss = (mu-mu_fake)**2 + (torch.exp(0.5 * logvar) - torch.exp(0.5 * logvar_fake))**2
 
-        assert (not compute_kld_loss) or self.opt.use_vae, \
-            "You cannot compute KLD loss if opt.use_vae == False"
+        assert (not compute_kld_loss) or self.cfg['USE_VAE'], \
+            "You cannot compute KLD loss if self.cfg['USE_VAE'] == False"
 
         return fake_image, KLD_loss, Encoder_Loss
 
@@ -235,17 +239,17 @@ class SpadeModel(torch.nn.Module):
         return eps.mul(std) + mu
 
     def use_gpu(self):
-        return len(self.opt.gpu_ids) > 0
+        return len(self.cfg['TRAINING']['GPU_ID']) > 0
 
     def update_learning_rate(self, optimizer_G, optimizer_D, epoch):
-        if epoch > self.opt.niter:
-            lrd = self.opt.lr / self.opt.niter_decay
+        if epoch > self.cfg['TRAINING']['N_ITER']:
+            lrd = self.cfg['TRAINING']['LR'] / self.cfg['TRAINING']['N_ITER_DECAY']
             new_lr = self.old_lr - lrd
         else:
             new_lr = self.old_lr
 
         if new_lr != self.old_lr:
-            if self.opt.no_TTUR:
+            if self.cfg['TRAINING']['NO_TTUR']:
                 new_lr_G = new_lr
                 new_lr_D = new_lr
             else:

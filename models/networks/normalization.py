@@ -13,7 +13,7 @@ import torch.nn.utils.spectral_norm as spectral_norm
 
 # Returns a function that creates a normalization function
 # that does not condition on semantic map
-def get_nonspade_norm_layer(opt, norm_type='instance'):
+def get_nonspade_norm_layer(cfg, norm_type='instance'):
     # helper function to get # output channels of the previous layer
     def get_out_channel(layer):
         if hasattr(layer, 'out_channels'):

@@ -12,19 +12,19 @@ from models.networks.normalization import get_nonspade_norm_layer
 class ConvEncoder():
     """ Same architecture as the image discriminator """
 
-    def __init__(self, opt):
+    def __init__(self, cfg):
         super().__init__()
 
         kw = 3
         pw = int(np.ceil((kw - 1.0) / 2))
-        ndf = opt.ngf
-        norm_layer = get_nonspade_norm_layer(opt, opt.norm_E)
+        ndf = cfg['TRAINING']['ENCODER']['NDF']
+        norm_layer = get_nonspade_norm_layer(cfg, cfg['TRAINING']['NORM_E'])
         self.layer1 = norm_layer(nn.Conv2d(3, ndf, kw, stride=2, padding=pw))
         self.layer2 = norm_layer(nn.Conv2d(ndf * 1, ndf * 2, kw, stride=2, padding=pw))
         self.layer3 = norm_layer(nn.Conv2d(ndf * 2, ndf * 4, kw, stride=2, padding=pw))
         self.layer4 = norm_layer(nn.Conv2d(ndf * 4, ndf * 8, kw, stride=2, padding=pw))
         self.layer5 = norm_layer(nn.Conv2d(ndf * 8, ndf * 8, kw, stride=2, padding=pw))
-        if opt.crop_size >= 256:
+        if cfg['TRAINING']['CROP_SIZE'] >= 256:
             self.layer6 = norm_layer(nn.Conv2d(ndf * 8, ndf * 8, kw, stride=2, padding=pw))
 
         self.so = s0 = 4
@@ -32,7 +32,7 @@ class ConvEncoder():
         self.fc_var = nn.Linear(ndf * 8 * s0 * s0, 256)
 
         self.actvn = nn.LeakyReLU(0.2, False)
-        self.opt = opt
+        self.cfg = cfg
 
     def forward(self, x):
         if x.size(2) != 256 or x.size(3) != 256:
@@ -43,7 +43,7 @@ class ConvEncoder():
         x = self.layer3(self.actvn(x))
         x = self.layer4(self.actvn(x))
         x = self.layer5(self.actvn(x))
-        if self.opt.crop_size >= 256:
+        if self.cfg['TRAINING']['CROP_SIZE'] >= 256:
             x = self.layer6(self.actvn(x))
         x = self.actvn(x)
 

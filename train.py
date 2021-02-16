@@ -24,7 +24,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 
     if cfg['LOGGING']['ENABLE_LOGGING']:
         logger.log_string(cfg)
-    start_epoch, end_epoch = cfg['TRAINING']['START_EPOCH'], cfg['TRAINING']['END_EPOCHS']
+    start_epoch, end_epoch = cfg['TRAINING']['START_EPOCH'], cfg['TRAINING']['N_ITER']+cfg['TRAINING']['N_ITER_DECAY']
     count = 0
     for epoch in tqdm(range(start_epoch, end_epoch + 1),total = end_epoch + 1):
 
@@ -49,8 +49,8 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
             optimizer_D.step()
 
             count+=1
-            if cfg['LOGGING']['ENABLE_LOGGING']:
-                tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss.item(), metrics.value())
+            if cfg['LOGGING']['ENABLE_LOGGING'] and epoch % cfg['LOGGING']['LOG_INTERVAL'] == 0:
+                tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
 
             if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
                 is_best = fid_computer.update(model, cur_iter)
@@ -63,25 +63,8 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                 visualizer.display_current_results(visuals, epoch, cur_iter)
 
 
-        if epoch % cfg['LOGGING']['LOG_INTERVAL'] == 0:
-
-            total_test_loss = do_validate(epoch, model, val_loader, loss_func, _device, nms)
-            logger.log_string('test loss for epoch {} : {}\n'.format(epoch, total_test_loss))
-            logger.log_string('Mean repeatability for epoch {} : {}\n'.format(epoch, metrics.repeatability/metrics.count))
-
-            print('epoch %d total test loss = %.3f' % (epoch, total_test_loss))
-
-        if epoch % cfg['TRAINING']['SAVE_MODEL_STEP'] == 0:
-            savefilename = os.path.join(cfg['TRAINING']['MODEL_DIR'], str(epoch) + 'glampoints.tar')
-
-            torch.save({
-                'epoch': epoch,
-                'state_dict': model.state_dict(),
-                'train_loss': total_train_loss / len(train_loader.dataset),
-            }, savefilename)
-
-            print('model is saved: {} - {}'.format(epoch, savefilename))
-
+        model.save(epoch)
+        print('model is saved: {} '.format(epoch))
         model.update_learning_rate(epoch, optimizer_G, optimizer_D)
 
     print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))

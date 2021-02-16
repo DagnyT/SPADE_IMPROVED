@@ -14,17 +14,17 @@ import matplotlib.pyplot as plt
 # --------------------------------------------------------------------------#
 
 class fid_pytorch():
-    def __init__(self, opt, dataloader_val):
-        self.opt = opt
+    def __init__(self, cfg, dataloader_val):
+        self.cfg = cfg
         self.dims = 2048
         block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[self.dims]
         self.model_inc = InceptionV3([block_idx])
-        if opt.gpu_ids != "-1":
+        if cfg['TRAINING']['GPU_ID'] != "-1":
             self.model_inc.cuda()
         self.val_dataloader = dataloader_val
         self.m1, self.s1 = self.compute_statistics_of_val_path(dataloader_val)
         self.best_fid = 99999999
-        self.path_to_save = os.path.join(self.opt.checkpoints_dir, self.opt.name, "FID")
+        self.path_to_save = os.path.join(cfg['LOGGING']['LOG_DIR'], cfg['TRAINING']['EXPERIMENT_NAME'], "FID")
         Path(self.path_to_save).mkdir(parents=True, exist_ok=True)
 
     def compute_statistics_of_val_path(self, dataloader_val):
@@ -40,35 +40,26 @@ class fid_pytorch():
         with torch.no_grad():
             for i, data_i in enumerate(self.val_dataloader):
                 image = data_i["image"]
-                if self.opt.gpu_ids != "-1":
+                if self.cfg['TRAINING']['GPU_ID'] != "-1":
                     image = image.cuda()
                 image = (image + 1) / 2
                 pool_val = self.model_inc(image.float())[0][:, :, 0, 0]
                 pool += [pool_val]
         return torch.cat(pool, 0)
 
-    def compute_fid_with_valid_path(self, netG, netEMA):
+    def compute_fid_with_valid_path(self, models):
         pool, logits, labels = [], [], []
         self.model_inc.eval()
-        netG.eval()
-        if not self.opt.no_EMA:
-            netEMA.eval()
         with torch.no_grad():
             for i, data_i in enumerate(self.val_dataloader):
-                image, label = models.preprocess_input(self.opt, data_i)
-                if self.opt.no_EMA:
-                    generated = netG(label)
-                else:
-                    generated = netEMA(label)
+                input_semantics, real_image = models.preprocess_input(data_i)
+                generated ,_  ,_ = models.generate_fake(input_semantics, real_image)
                 generated = (generated + 1) / 2
                 pool_val = self.model_inc(generated.float())[0][:, :, 0, 0]
                 pool += [pool_val]
             pool = torch.cat(pool, 0)
             mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
             answer = self.numpy_calculate_frechet_distance(self.m1, self.s1, mu, sigma)
-        netG.train()
-        if not self.opt.no_EMA:
-            netEMA.train()
         return answer
 
     def numpy_calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
@@ -130,7 +121,7 @@ class fid_pytorch():
 
     def update(self, model, cur_iter):
         print("--- Iter %s: computing FID ---" % (cur_iter))
-        cur_fid = self.compute_fid_with_valid_path(model.module.netG, model.module.netEMA)
+        cur_fid = self.compute_fid_with_valid_path(model.module)
         self.update_logs(cur_fid, cur_iter)
         print("--- FID at Iter %s: " % cur_iter, "{:.2f}".format(cur_fid))
         if cur_fid < self.best_fid:

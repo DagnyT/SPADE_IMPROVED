@@ -2,29 +2,67 @@ INPUT:
   TRAIN: '/DISLOCATIONS/'
   TEST: '/DISLOCATIONS/'
 
+USE_VAE: True
+IS_TRAINING: True
+CONTINUE_TRAINING: False
+
 TRAINING:
     TRAINING_SET: 'dislocations'
     EXPERIMENT_NAME: 'baseline'
+    LABEL_NC: 4
+    CONTAINS_DONT_CARE: True
+    NO_INSTANCE: True
     MODEL_DIR: 'models'
     MODEL: 'init'
     CUDA: True
+    NO_GAN_FEAT_LOSS: True
+    NO_VGG_LOSS: True
+    LAMBDA_FEAT: 10.0
+    LAMBDA_VGG: 10.0
+    LAMBDA_KLD: 0.05
+    N_ITER: 200
+    N_ITER_DECAY: 100
+    TF_LOG: True
+    NO_HTML: True
+    DISPLAY_WINSIZE: 400
     GPU_ID: 0
     SEED: 42
     INPUT_LAYER: 1
     IMAGE_SIZE_H: 512
     IMAGE_SIZE_W: 512
     LOAD_PRE_TRAINING: False
-    LEAARNING_RATE: 0.001
+    LR: 0.0002
     START_EPOCH: 0
     END_EPOCHS: 200
-    NMS_EPOCH0: 10
-    NMS_OTHERS: 10
     BATCH_SIZE: 5
     PLOT_EVERY_X_BATCHES: 20
     OPTIMIZER: Adam
-    BASE_LR: 0.001
+    BETA1: 0.0
+    BETA2: 0.9
+    NO_TTUR: True
     SAVE_MODEL_STEP: 1
+    WHICH_EPOCH: 'latest'
     NUM_WORKERS: 8
+
+    NORM_E: 'spectralinstance'
+    NORM_G: 'spectralinstance'
+    NORM_D: 'spectralinstance'
+
+    CROP_SIZE: 512
+    ASPECT_RATIO: 1.0
+    NUM_UPSAMPLING_LAYERS: 'normal'
+
+    NGF: 64
+    NUM_D: 6
+    NET_D_SUB_ARCH: 'n_layer'
+    N_LAYERS_D: 4
+
+    OUTPUT_NC: 3
+
+    Z_DIM: 256
+    ENCODER:
+        NDF: 64
+
 
 TEST:
     IMAGE_SIZE_H: 256
@@ -49,4 +87,4 @@ LOGGING:
   LOG_INTERVAL: 100
   PLOT_INTERVALS: 10
   IMG_DIR: 'images/'
-  LOG_DIR: 'logs/'
+  LOG_DIR: 'checkpoints/'

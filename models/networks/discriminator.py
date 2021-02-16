@@ -11,18 +11,18 @@ from models.networks.normalization import get_nonspade_norm_layer
 
 class MultiscaleDiscriminator():
 
-    def __init__(self, opt):
+    def __init__(self, cfg):
         super().__init__()
-        self.opt = opt
+        self.cfg = cfg
 
-        for i in range(opt.num_D):
-            subnetD = self.create_single_discriminator(opt)
+        for i in range(cfg['TRAINING']['NUM_D']):
+            subnetD = self.create_single_discriminator(cfg)
             self.add_module('discriminator_%d' % i, subnetD)
 
-    def create_single_discriminator(self, opt):
-        subarch = opt.netD_subarch
+    def create_single_discriminator(self, cfg):
+        subarch = self.cfg['TRAINING']['NET_D_SUB_ARCH']
         if subarch == 'n_layer':
-            netD = NLayerDiscriminator(opt)
+            netD = NLayerDiscriminator(cfg)
         else:
             raise ValueError('unrecognized discriminator subarchitecture %s' % subarch)
         return netD
@@ -33,10 +33,10 @@ class MultiscaleDiscriminator():
                             count_include_pad=False)
 
     # Returns list of lists of discriminator outputs.
-    # The final result is of size opt.num_D x opt.n_layers_D
+    # The final result is of size num_D x n_layers_D
     def forward(self, input):
         result = []
-        get_intermediate_features = not self.opt.no_ganFeat_loss
+        get_intermediate_features = not self.cfg['TRAINING']['NO_GAN_FEAT_LOSS']
         for name, D in self.named_children():
             out = D(input)
             if not get_intermediate_features:
@@ -54,23 +54,23 @@ class NLayerDiscriminator():
                             help='# layers in each discriminator')
         return parser
 
-    def __init__(self, opt):
+    def __init__(self, cfg):
         super().__init__()
-        self.opt = opt
+        self.cfg = cfg
 
         kw = 4
         padw = int(np.ceil((kw - 1.0) / 2))
-        nf = opt.ndf
-        input_nc = self.compute_D_input_nc(opt)
+        nf = cfg['TRAINING']['ENCODER']['NDF']
+        input_nc = self.compute_D_input_nc(cfg)
 
-        norm_layer = get_nonspade_norm_layer(opt, opt.norm_D)
+        norm_layer = get_nonspade_norm_layer(cfg, cfg['TRAINING']['NORM_D'])
         sequence = [[nn.Conv2d(input_nc, nf, kernel_size=kw, stride=2, padding=padw),
                      nn.LeakyReLU(0.2, False)]]
 
-        for n in range(1, opt.n_layers_D):
+        for n in range(1, cfg['TRAINING']['N_LAYERS_D']):
             nf_prev = nf
             nf = min(nf * 2, 512)
-            stride = 1 if n == opt.n_layers_D - 1 else 2
+            stride = 1 if n == cfg['TRAINING']['N_LAYERS_D'] - 1 else 2
             sequence += [[norm_layer(nn.Conv2d(nf_prev, nf, kernel_size=kw,
                                                stride=stride, padding=padw)),
                           nn.LeakyReLU(0.2, False)
@@ -82,11 +82,11 @@ class NLayerDiscriminator():
         for n in range(len(sequence)):
             self.add_module('model' + str(n), nn.Sequential(*sequence[n]))
 
-    def compute_D_input_nc(self, opt):
-        input_nc = opt.label_nc + opt.output_nc
-        if opt.contain_dontcare_label:
+    def compute_D_input_nc(self, cfg):
+        input_nc = cfg['TRAINING']['LABEL_NC'] + cfg['TRAINING']['OUTPUT_NC']
+        if cfg['TRAINING']['CONTAINS_DONT_CARE']:
             input_nc += 1
-        if not opt.no_instance:
+        if not cfg['TRAINING']['NO_INSTANCE']:
             input_nc += 1
         return input_nc
 
@@ -96,7 +96,7 @@ class NLayerDiscriminator():
             intermediate_output = submodel(results[-1])
             results.append(intermediate_output)
 
-        get_intermediate_features = not self.opt.no_ganFeat_loss
+        get_intermediate_features = not self.cfg['TRAINING']['NO_GAN_FEAT_LOSSop']
         if get_intermediate_features:
             return results[1:]
         else:
