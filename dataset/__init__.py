@@ -15,7 +15,7 @@ def make_data_loader(cfg):
 
     train_loader = torch.utils.data.DataLoader(train_set, drop_last=True,
                                                batch_size=cfg['TRAINING']['BATCH_SIZE'],
-                                               shuffle=True,
+                                               shuffle=False,
                                                num_workers=num_workers)
 
     val_loader = torch.utils.data.DataLoader(val_set, drop_last=True,

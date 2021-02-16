@@ -93,7 +93,7 @@ class NLayerDiscriminator(BaseNetwork):
             intermediate_output = submodel(results[-1])
             results.append(intermediate_output)
 
-        get_intermediate_features = not self.cfg['TRAINING']['NO_GAN_FEAT_LOSSop']
+        get_intermediate_features = not self.cfg['TRAINING']['NO_GAN_FEAT_LOSS']
         if get_intermediate_features:
             return results[1:]
         else:

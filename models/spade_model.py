@@ -5,11 +5,10 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 
 import torch
 import os
-import models.networks as networks
 from models.networks.encoder import ConvEncoder
 from models.networks.generator import SPADEGenerator
 from models.networks.discriminator import MultiscaleDiscriminator
-
+from models.networks.loss import GANLoss, VGGLoss, KLDLoss, GradLoss
 class SpadeModel(torch.nn.Module):
 
     def __init__(self, cfg):
@@ -21,6 +20,18 @@ class SpadeModel(torch.nn.Module):
             else torch.ByteTensor
 
         self.netG, self.netD, self.netE = self.initialize_networks(cfg)
+
+        self.old_lr = cfg['TRAINING']["LR"]
+
+        if cfg['IS_TRAINING']:
+            self.criterionGAN = GANLoss(
+                cfg['TRAINING']['GAN_MODE'], tensor=self.FloatTensor, cfg=self.cfg)
+            self.criterionFeat = torch.nn.L1Loss()
+            if not cfg['TRAINING']['NO_VGG_LOSS']:
+                self.criterionVGG = VGGLoss(cfg['TRAINING']['GPU_ID'])
+            if cfg['USE_VAE']:
+                self.KLDLoss = KLDLoss()
+            self.GradLoss = GradLoss()
 
     def forward(self, data, mode):
         input_semantics, real_image = self.preprocess_input(data)
@@ -95,6 +106,7 @@ class SpadeModel(torch.nn.Module):
         netG.cuda()
         netE.cuda()
         netD.cuda()
+
         netG.init_weights(cfg)
         netD.init_weights(cfg)
         netE.init_weights(cfg)
@@ -210,6 +222,7 @@ class SpadeModel(torch.nn.Module):
     # for each fake and real image.
 
     def discriminate(self, input_semantics, fake_image, real_image):
+
         fake_concat = torch.cat([input_semantics, fake_image], dim=1)
         real_concat = torch.cat([input_semantics, real_image], dim=1)
 

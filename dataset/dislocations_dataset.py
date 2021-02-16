@@ -24,13 +24,9 @@ class DislocationsDataset():
             path = cfg['INPUT']['TEST']
 
         path_img = os.path.join(path, mode+"_img")
-        path_lab = os.path.join(path, mode+"_label")
 
-        images , labels = sorted(os.listdir(path_img)), sorted(os.listdir(path_lab))
-
-        assert len(images)  == len(labels), "different len of images and labels %s - %s" % (len(images), len(labels))
-
-        return images, labels, path_img, path_lab
+        images = sorted(os.listdir(path_img))
+        return images, path_img
 
     def __init__(self, cfg, mode):
 
@@ -38,10 +34,10 @@ class DislocationsDataset():
         self.is_train = False
         if mode == 'train':
             self.is_train = True
+            self.mode = mode
 
-        self.label_paths, self.image_paths, self.path_img, self.path_lab = self.get_paths(cfg, mode)
-        size = len(self.label_paths)
-        self.dataset_size = size
+        self.images, self.path_img = self.get_paths(cfg, mode)
+        self.dataset_size = len(self.images)
 
     def convert_labels(self, label_tensor):
 
@@ -83,12 +79,15 @@ class DislocationsDataset():
 
     def __getitem__(self, index):
 
-        label_path = os.path.join(self.path_lab,self.label_paths[index])
-        image_path = os.path.join(self.path_img, self.image_paths[index])
+        label_path = self.path_img.replace(self.mode+'_img',self.mode+"_label")
+        img_name = self.images[index]
 
-        label = Image.open(label_path).convert('L').resize((self.cfg['TRAINING']['IMAGE_SIZE_H'],self.cfg['TRAINING']['IMAGE_SIZE_W']))
-        image = Image.open(image_path)
-        image = image.convert('RGB').resize((self.cfg['TRAINING']['IMAGE_SIZE_H'],self.cfg['TRAINING']['IMAGE_SIZE_W']))
+        label = Image.open(os.path.join(label_path, img_name)).convert('L')
+        image = Image.open(os.path.join(self.path_img, img_name))
+        image = image.convert('RGB')
+
+        image = transforms.functional.resize(image, (self.cfg['TRAINING']['IMAGE_SIZE_W'], self.cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
+        label = transforms.functional.resize(label, (self.cfg['TRAINING']['IMAGE_SIZE_W'], self.cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
 
         if self.is_train:
 
@@ -102,14 +101,18 @@ class DislocationsDataset():
 
         label = self.convert_labels(np.array(label))
 
-        image_tensor = torch.from_numpy(np.array(image)).float().permute(2, 0, 1)
+        image = transforms.functional.to_tensor(np.array(image))
+        # normalize
+        image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
         label_tensor = torch.from_numpy(label).unsqueeze(0)
 
         input_dict = {'label': label_tensor,
                       'image': image_tensor,
-                      'path': image_path }
+                      'path': os.path.join(self.path_img, img_name) }
 
         self.postprocess(input_dict)
+
         return input_dict
 
     def postprocess(self, input_dict):

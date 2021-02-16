@@ -20,6 +20,7 @@ TRAINING:
     MODEL: 'init'
     CUDA: True
     NO_GAN_FEAT_LOSS: True
+    GAN_MODE: 'hinge'
     NO_VGG_LOSS: True
     LAMBDA_FEAT: 10.0
     LAMBDA_VGG: 10.0
@@ -27,7 +28,7 @@ TRAINING:
     N_ITER: 200
     N_ITER_DECAY: 100
     TF_LOG: False
-    NO_HTML: True
+    NO_HTML: False
     DISPLAY_WINSIZE: 400
     GPU_ID: 0
     SEED: 42
@@ -79,7 +80,7 @@ TEST:
     WEIGHTS: ''
 
 VISUALIZER:
-    ENABLE:1
+    ENABLE: True
 
 LOGGING:
 

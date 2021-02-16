@@ -44,14 +44,14 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
             d_loss.backward()
             optimizer_D.step()
 
-            count+=1
             if cfg['LOGGING']['ENABLE_LOGGING'] and epoch % cfg['LOGGING']['LOG_INTERVAL'] == 0:
-                tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
+                print('Train', epoch, cur_iter, g_loss, d_loss)
+            #     tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
 
             # if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
             #     is_best = fid_computer.update(model, cur_iter)
 
-            if cfg['VISUALIZER']['ENABLE'] == 1:
+            if cfg['VISUALIZER']['ENABLE']:
 
                 visuals = OrderedDict([('input_label', data['label']),
                                        ('synthesized_image', generated),
@@ -61,7 +61,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 
         model.save(epoch)
         print('model is saved: {} '.format(epoch))
-        model.update_learning_rate(epoch, optimizer_G, optimizer_D)
+        model.update_learning_rate(optimizer_G, optimizer_D, epoch)
 
     print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
 
