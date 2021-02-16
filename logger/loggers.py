@@ -9,10 +9,10 @@ class TensorboardLogger:
     def add_scalars_to_tensorboard(self, type, epoch, iter, loss_G, loss_D):
 
         for name, value in loss_G.items():
-            self.writer.add_scalar(type+'/'+name, value, iter)
+            self.writer.add_scalar(type+'/'+name, value.item(), iter)
 
         for name, value in loss_D.items():
-            self.writer.add_scalar(type+'/'+name, value, iter)
+            self.writer.add_scalar(type+'/'+name, value.item(), iter)
 
     def add_images_to_tensorboard(self, img, name):
         self.writer.add_image('images/'+name, img, 0)

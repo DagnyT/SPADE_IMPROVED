@@ -45,10 +45,10 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 
             if cfg['LOGGING']['ENABLE_LOGGING'] and cur_iter % cfg['LOGGING']['LOG_INTERVAL'] == 0:
                 print('Train', epoch, cur_iter, g_loss, d_loss)
-            #     tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
+                tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
 
-            # if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
-            #     is_best = fid_computer.update(model, cur_iter)
+            if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
+                is_best = fid_computer.update(model, cur_iter)
 
             if cfg['VISUALIZER']['ENABLE'] and cur_iter % cfg['VISUALIZER']['LOG_INTERVAL'] == 0:
 
@@ -85,6 +85,7 @@ if __name__ == '__main__':
     optimizer_G, optimizer_D = model.create_optimizers(cfg)
     visualizer = visualizer.Visualizer(cfg)
     print('Fid initialization')
+    fid_computer = fid_scores.fid_pytorch(cfg, val_loader)
 
     print('Fid was initialized')
 
@@ -96,7 +97,7 @@ if __name__ == '__main__':
         train_loader,
         val_loader,
         optimizer_G, optimizer_D,
-        None,
+        fid_computer,
         logger,
         tb_logger,
         _device)
