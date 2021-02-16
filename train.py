@@ -61,7 +61,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                 visualizer.print_current_errors(epoch, cur_iter,
                                                 {**loss_G, **loss_D}, time.time() - current_time)
 
-        if epoch % cfg['LOGGING']['SAVE_EVERY'] == 10:
+        if epoch % cfg['LOGGING']['SAVE_EVERY'] == 0 :
             model.save(epoch)
             print('model is saved: {} '.format(epoch))
 
