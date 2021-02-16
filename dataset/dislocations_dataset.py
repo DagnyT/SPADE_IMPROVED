@@ -67,7 +67,7 @@ class DislocationsDataset():
                 MedianBlur(blur_limit=3, p=0.1),
                 Blur(blur_limit=3, p=0.1),
             ], p=0.2),
-            ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.3, rotate_limit=15, p=0.5),
+            ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.5, rotate_limit=45, p=0.5),
             OneOf([
                 RandomBrightnessContrast(brightness_limit=0.4, contrast_limit=0.4),
             ], p=0.5),

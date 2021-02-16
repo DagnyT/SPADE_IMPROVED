@@ -119,7 +119,7 @@ class fid_pytorch():
 
     def update(self, model, cur_iter):
         print("--- Iter %s: computing FID ---" % (cur_iter))
-        cur_fid = self.compute_fid_with_valid_path(model.module)
+        cur_fid = self.compute_fid_with_valid_path(model)
         self.update_logs(cur_fid, cur_iter)
         print("--- FID at Iter %s: " % cur_iter, "{:.2f}".format(cur_fid))
         if cur_fid < self.best_fid:

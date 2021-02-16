@@ -1,0 +1,5 @@
+python train.py
+cd /cvlabdata2/cvlab/datasets_anastasiia/dislocations/SPADE/
+python train.py --use_vae --name init_experiment_check --dataset_mode custom --label_dir /cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/DislocationsTrainingDataPng_segmentations/ --image_dir /cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/DislocationsTrainingDataPng_resized/ --instance_dir /cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/DislocationsTrainingDataPng_segmentations/ --label_nc 4 --batchSize 5 --no_instance
+python train.py --use_vae --name experiment_facades_encoder_loss --dataset_mode facades --dataroot /cvlabdata2/cvlab/datasets_anastasiia/Datasets/gan/facades/facade/  --batchSize 6 --no_instance
+python train.py --use_vae --name init_ade20k --dataset_mode ade20k --dataroot /cvlabdata2/cvlab/datasets_anastasiia/Datasets/gan/ADE20/ADEChallengeData2016 --batchSize 10 --no_instance

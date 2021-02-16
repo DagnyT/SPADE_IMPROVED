@@ -13,12 +13,12 @@ def make_data_loader(cfg):
     else:
         raise NotImplementedError
 
-    train_loader = torch.utils.data.DataLoader(train_set, drop_last=True,
+    train_loader = torch.utils.data.DataLoader(train_set, drop_last=False,
                                                batch_size=cfg['TRAINING']['BATCH_SIZE'],
-                                               shuffle=False,
+                                               shuffle=True,
                                                num_workers=num_workers)
 
-    val_loader = torch.utils.data.DataLoader(val_set, drop_last=True,
+    val_loader = torch.utils.data.DataLoader(val_set, drop_last=False,
                                              batch_size=cfg['TEST']['BATCH_SIZE'],
                                              shuffle=False,
                                              num_workers=num_workers)

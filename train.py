@@ -28,6 +28,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
         print('This is %d-th epoch' % epoch)
 
         for batch_idx, data in enumerate(train_loader):
+            current_time = time.time()
 
             cur_iter = epoch * len(train_loader) + batch_idx
 
@@ -47,7 +48,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                 print('Train', epoch, cur_iter, g_loss, d_loss)
                 tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
 
-            if cur_iter % cfg['LOGGING']['FID'] == 0 and cur_iter > 0:
+            if cur_iter % cfg['LOGGING']['FID'] == 0:
                 is_best = fid_computer.update(model, cur_iter)
 
             if cfg['VISUALIZER']['ENABLE'] and cur_iter % cfg['VISUALIZER']['LOG_INTERVAL'] == 0:
@@ -56,6 +57,9 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                                        ('synthesized_image', generated),
                                        ('real_image', data['image'])])
                 visualizer.display_current_results(visuals, epoch, cur_iter)
+
+                visualizer.print_current_errors(epoch, cur_iter,
+                                                {**loss_G, **loss_D}, time.time() - current_time)
 
         if epoch % cfg['LOGGING']['SAVE_EVERY'] == 10:
             model.save(epoch)
