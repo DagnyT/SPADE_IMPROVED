@@ -30,7 +30,7 @@ class DislocationsDataset():
 
         assert len(images)  == len(labels), "different len of images and labels %s - %s" % (len(images), len(labels))
 
-        return images, labels
+        return images, labels, path_img, path_lab
 
     def __init__(self, cfg, mode):
 
@@ -39,7 +39,7 @@ class DislocationsDataset():
         if mode == 'train':
             self.is_train = True
 
-        self.label_paths, self.image_paths = self.get_paths(cfg, mode)
+        self.label_paths, self.image_paths, self.path_img, self.path_lab = self.get_paths(cfg, mode)
         size = len(self.label_paths)
         self.dataset_size = size
 
@@ -83,12 +83,12 @@ class DislocationsDataset():
 
     def __getitem__(self, index):
 
-        label_path = self.label_paths[index]
-        image_path = self.image_paths[index]
+        label_path = os.path.join(self.path_lab,self.label_paths[index])
+        image_path = os.path.join(self.path_img, self.image_paths[index])
 
-        label = Image.open(label_path).convert('L')
+        label = Image.open(label_path).convert('L').resize((self.cfg['TRAINING']['IMAGE_SIZE_H'],self.cfg['TRAINING']['IMAGE_SIZE_W']))
         image = Image.open(image_path)
-        image = image.convert('RGB')
+        image = image.convert('RGB').resize((self.cfg['TRAINING']['IMAGE_SIZE_H'],self.cfg['TRAINING']['IMAGE_SIZE_W']))
 
         if self.is_train:
 
@@ -102,7 +102,7 @@ class DislocationsDataset():
 
         label = self.convert_labels(np.array(label))
 
-        image_tensor = torch.from_numpy(np.array(image))
+        image_tensor = torch.from_numpy(np.array(image)).float().permute(2, 0, 1)
         label_tensor = torch.from_numpy(label).unsqueeze(0)
 
         input_dict = {'label': label_tensor,
@@ -110,7 +110,6 @@ class DislocationsDataset():
                       'path': image_path }
 
         self.postprocess(input_dict)
-        print(input_dict)
         return input_dict
 
     def postprocess(self, input_dict):

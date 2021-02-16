@@ -21,9 +21,9 @@ def initialize_cuda_and_logging (cfg):
             raise Exception("CUDA is NOT available!")
         os.environ['CUDA_VISIBLE_DEVICES'] = str(cfg['TRAINING']['GPU_ID'])
 
-        cudnn.benchmark = True
+        cudnn.benchmark = False
         torch.cuda.manual_seed_all(cfg['TRAINING']['SEED'])
-        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.deterministic = False
         torch.manual_seed(cfg['TRAINING']['SEED'])
       #  torch.backends.cudnn.benchmark = False
 

@@ -8,6 +8,9 @@ IS_TRAINING: True
 CONTINUE_TRAINING: False
 
 TRAINING:
+
+    INIT_TYPE: 'xavier'
+    INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
     EXPERIMENT_NAME: 'baseline'
     LABEL_NC: 4

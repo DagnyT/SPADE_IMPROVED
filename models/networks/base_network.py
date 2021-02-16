@@ -21,7 +21,10 @@ class BaseNetwork(nn.Module):
               'To see the architecture, do print(network).'
               % (type(self).__name__, num_params / 1000000))
 
-    def init_weights(self, init_type='normal', gain=0.02):
+    def init_weights(self, cfg):
+
+        init_type, gain = cfg['TRAINING']['INIT_TYPE'], cfg['TRAINING']['INIT_VARIANCE']
+
         def init_func(m):
             classname = m.__class__.__name__
             if classname.find('BatchNorm2d') != -1:
@@ -52,6 +55,6 @@ class BaseNetwork(nn.Module):
         # propagate to children
         for m in self.children():
             if hasattr(m, 'init_weights'):
-                m.init_weights(init_type, gain)
+                m.init_weights(cfg)
 
         print('Init is succesfully done')

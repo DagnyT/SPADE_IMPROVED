@@ -92,6 +92,13 @@ class SpadeModel(torch.nn.Module):
         netD = MultiscaleDiscriminator(cfg) if cfg['IS_TRAINING'] else None
         netE = ConvEncoder(cfg) if cfg['USE_VAE'] else None
 
+        netG.cuda()
+        netE.cuda()
+        netD.cuda()
+        netG.init_weights(cfg)
+        netD.init_weights(cfg)
+        netE.init_weights(cfg)
+
         if not cfg['IS_TRAINING'] or cfg['CONTINUE_TRAINING']:
             netG = self.load_network(netG, 'G', cfg['TRAINING']['WHICH_EPOCH'], cfg)
             if cfg['IS_TRAINING']:
@@ -240,7 +247,7 @@ class SpadeModel(torch.nn.Module):
         return eps.mul(std) + mu
 
     def use_gpu(self):
-        return self.cfg['TRAINING']['GPU_ID']
+        return True
 
     def update_learning_rate(self, optimizer_G, optimizer_D, epoch):
         if epoch > self.cfg['TRAINING']['N_ITER']:

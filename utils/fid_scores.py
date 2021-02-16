@@ -18,8 +18,7 @@ class fid_pytorch():
         self.dims = 2048
         block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[self.dims]
         self.model_inc = InceptionV3([block_idx])
-        if cfg['TRAINING']['GPU_ID'] != "-1":
-            self.model_inc.cuda()
+        self.model_inc.cuda()
         self.val_dataloader = dataloader_val
         self.m1, self.s1 = self.compute_statistics_of_val_path(dataloader_val)
         self.best_fid = 99999999
@@ -36,11 +35,11 @@ class fid_pytorch():
     def accumulate_inception_activations(self):
         pool, logits, labels = [], [], []
         self.model_inc.eval()
+        print('Accumulate inception activations')
         with torch.no_grad():
             for i, data_i in enumerate(self.val_dataloader):
                 image = data_i["image"]
-                if self.cfg['TRAINING']['GPU_ID'] != "-1":
-                    image = image.cuda()
+                image = image.cuda()
                 image = (image + 1) / 2
                 pool_val = self.model_inc(image.float())[0][:, :, 0, 0]
                 pool += [pool_val]
