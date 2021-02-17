@@ -36,6 +36,8 @@ class DislocationsDataset():
         self.images, self.path_img = self.get_paths(cfg, mode)
         self.dataset_size = len(self.images)
 
+        print('Dataset size: {}'.format(self.dataset_size))
+
     def convert_labels(self, label_tensor):
 
         label_tensor[label_tensor == 0] = 1
