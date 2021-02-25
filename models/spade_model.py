@@ -59,7 +59,8 @@ class SpadeModel(torch.nn.Module):
             return mu, logvar
         elif mode == 'inference':
             with torch.no_grad():
-                fake_image, _,_ = self.generate_fake(input_semantics, real_image)
+                seed = data['seed']
+                fake_image, _,_ = self.generate_fake(input_semantics, real_image, seed)
             return fake_image
         else:
             raise ValueError("|mode| is invalid")
@@ -215,10 +216,18 @@ class SpadeModel(torch.nn.Module):
         z = self.reparameterize(mu, logvar)
         return z, mu, logvar
 
-    def generate_fake(self, input_semantics, real_image, compute_kld_loss=False):
+    def encode_z_with_seed(self, real_image, seed):
+        mu, logvar = self.netE(real_image)
+        z = self.reparameterize_with_seed(mu, logvar, seed)
+        return z, mu, logvar
+
+    def generate_fake(self, input_semantics, real_image, compute_kld_loss=False, seed=42):
         z = None
         KLD_loss = None
-        if self.cfg['USE_VAE']:
+        if not self.cfg['IS_TRAINING']:
+            z, mu, logvar = self.encode_z_with_seed(real_image, seed)
+
+        elif self.cfg['USE_VAE']:
             z, mu, logvar = self.encode_z(real_image)
             if compute_kld_loss:
                 KLD_loss = self.KLDLoss(mu, logvar) * self.cfg['TRAINING']['LAMBDA_KLD']
@@ -279,6 +288,11 @@ class SpadeModel(torch.nn.Module):
         return fake, real
 
     def reparameterize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps.mul(std) + mu
+
+    def reparameterize_with_seed(self, mu, logvar, seed):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std) + mu
