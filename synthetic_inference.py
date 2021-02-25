@@ -41,8 +41,24 @@ if __name__ == '__main__':
     input_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/segmentation_left_image',
                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/segmentation_right_image']
 
+    input_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/segmentation_left_image',
+                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/segmentation_right_image']
+
+
     output_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/left_image/',
                       '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/right_image/']
+
+    output_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/left_image/',
+                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/right_image/']
+
+    for folder_ in output_folders_test:
+        if not os.path.exists(folder_):
+            os.makedirs(folder_)
+
+    for folder_ in output_folders:
+        if not os.path.exists(folder_):
+            os.makedirs(folder_)
+
 
     style_directory_train = '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/train_img/'
     style_directory_test = '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/val_img/'
@@ -50,33 +66,110 @@ if __name__ == '__main__':
     style_images_train = os.listdir(style_directory_train)
     style_images_test = os.listdir(style_directory_test)
 
-    for idx, folder_ in enumerate(input_folders):
-        labels = os.listdir(folder_)
-        for label_ in tqdm(labels):
 
-            img_name = np.random.choice(style_images_train, 1)[0]
-            label = Image.open(os.path.join(folder_, label_)).convert('L')
+    # test
 
-            image = Image.open(os.path.join(style_directory_train, img_name))
+    labels = os.listdir(input_folders_test[0])
+    for label_ in tqdm(labels):
+
+            img_name = np.random.choice(style_images_test, 1)[0]
+
+            label_left = Image.open(os.path.join(input_folders_test[0], label_)).convert('L')
+            label_right = Image.open(os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT'))).convert('L')
+
+            image = Image.open(os.path.join(style_directory_test, img_name))
             image = image.convert('RGB')
 
             image = transforms.functional.resize(image, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
-            label = transforms.functional.resize(label, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
+            label_left = transforms.functional.resize(label_left, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
+            label_right = transforms.functional.resize(label_right, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
 
-            label = convert_labels(np.array(label))
+            label_left = convert_labels(np.array(label_left))
+            label_right = convert_labels(np.array(label_right))
 
             image = transforms.functional.to_tensor(np.array(image))
 
             image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-            label_tensor = torch.from_numpy(label).unsqueeze(0)
+            label_tensor_left = torch.from_numpy(label_left).unsqueeze(0)
+            label_tensor_right = torch.from_numpy(label_right).unsqueeze(0)
 
-            data = {'label': label_tensor.unsqueeze(0),
+            seed = np.random.randint(1,100000)
+            data = {'label': label_tensor_left.unsqueeze(0),
                           'image': image_tensor.unsqueeze(0),
-                          'path': os.path.join(folder_, label_) }
+                          'path': os.path.join(input_folders_test[0], label_),
 
-            fake_image = model.forward(data, 'inference')
+                    'seed':seed}
 
-            fake_image = util.tensor2im(fake_image, tile=False)
+            fake_image_left = model.forward(data, 'inference')
 
-            Image.fromarray(fake_image[0]).save(output_folders[idx]+label_)
+            fake_image_left = util.tensor2im(fake_image_left, tile=False)
+
+            Image.fromarray(fake_image_left[0]).save(output_folders_test[0]+label_)
+
+            data = {'label': label_tensor_right.unsqueeze(0),
+                          'image': image_tensor.unsqueeze(0),
+                          'path': os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT')),
+
+                    'seed':seed }
+
+            fake_image_right = model.forward(data, 'inference')
+
+            fake_image_right = util.tensor2im(fake_image_right, tile=False)
+
+            Image.fromarray(fake_image_right[0]).save(output_folders_test[1]+label_.replace('LEFT','RIGHT'))
+
+
+    # train
+    labels = os.listdir(input_folders[0])
+    for label_ in tqdm(labels):
+
+            img_name = np.random.choice(style_images_train, 1)[0]
+
+            label_left = Image.open(os.path.join(input_folders[0], label_)).convert('L')
+            label_right = Image.open(os.path.join(input_folders[1], label_.replace('LEFT','RIGHT'))).convert('L')
+
+            image = Image.open(os.path.join(style_directory_train, img_name))
+            image = image.convert('RGB')
+
+            image = transforms.functional.resize(image, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
+            label_left = transforms.functional.resize(label_left, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
+            label_right = transforms.functional.resize(label_right, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
+
+            label_left = convert_labels(np.array(label_left))
+            label_right = convert_labels(np.array(label_right))
+
+            image = transforms.functional.to_tensor(np.array(image))
+
+            image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+            label_tensor_left = torch.from_numpy(label_left).unsqueeze(0)
+            label_tensor_right = torch.from_numpy(label_right).unsqueeze(0)
+
+            seed = np.random.randint(1,100000)
+            data = {'label': label_tensor_left.unsqueeze(0),
+                          'image': image_tensor.unsqueeze(0),
+                          'path': os.path.join(input_folders[0], label_),
+
+                    'seed':seed}
+
+            fake_image_left = model.forward(data, 'inference')
+
+            fake_image_left = util.tensor2im(fake_image_left, tile=False)
+
+            Image.fromarray(fake_image_left[0]).save(output_folders[0]+label_)
+
+            data = {'label': label_tensor_right.unsqueeze(0),
+                          'image': image_tensor.unsqueeze(0),
+                          'path': os.path.join(input_folders[1], label_.replace('LEFT','RIGHT')),
+
+                    'seed':seed }
+
+            fake_image_right = model.forward(data, 'inference')
+
+            fake_image_right = util.tensor2im(fake_image_right, tile=False)
+
+            Image.fromarray(fake_image_right[0]).save(output_folders[1]+label_.replace('LEFT','RIGHT'))
+
+
+
