@@ -9,6 +9,7 @@ from models.networks.encoder import ConvEncoder
 from models.networks.generator import SPADEGenerator
 from models.networks.discriminator import MultiscaleDiscriminator
 from models.networks.loss import GANLoss, VGGLoss, KLDLoss, GradLoss
+
 class SpadeModel(torch.nn.Module):
 
     def __init__(self, cfg):
@@ -23,6 +24,9 @@ class SpadeModel(torch.nn.Module):
 
         self.old_lr = cfg['TRAINING']["LR"]
 
+        if not cfg['IS_TRAINING']:
+            self.inference_mode()
+
         if cfg['IS_TRAINING']:
             self.criterionGAN = GANLoss(
                 cfg['TRAINING']['GAN_MODE'], tensor=self.FloatTensor, cfg=self.cfg)
@@ -32,6 +36,12 @@ class SpadeModel(torch.nn.Module):
             if cfg['USE_VAE']:
                 self.KLDLoss = KLDLoss()
             self.GradLoss = GradLoss()
+
+    def inference_mode(self):
+
+        self.netG.eval()
+        self.netE.eval()
+
 
     def forward(self, data, mode):
         input_semantics, real_image = self.preprocess_input(data)
@@ -105,13 +115,18 @@ class SpadeModel(torch.nn.Module):
 
         netG.cuda()
         netE.cuda()
-        netD.cuda()
+
+        if cfg['IS_TRAINING']:
+
+            netD.cuda()
+            netD.init_weights(cfg)
 
         netG.init_weights(cfg)
-        netD.init_weights(cfg)
         netE.init_weights(cfg)
 
         if not cfg['IS_TRAINING'] or cfg['CONTINUE_TRAINING']:
+
+            print('Loading networks from file')
             netG = self.load_network(netG, 'G', cfg['TRAINING']['WHICH_EPOCH'], cfg)
             if cfg['IS_TRAINING']:
                 netD = self.load_network(netD, 'D', cfg['TRAINING']['WHICH_EPOCH'], cfg)
@@ -152,12 +167,12 @@ class SpadeModel(torch.nn.Module):
 
         if self.cfg['USE_VAE']:
             G_losses['KLD'] = KLD_loss
-            G_losses['Encoder_Loss'] = Encoder_Loss*100
+            # G_losses['Encoder_Loss'] = Encoder_Loss*10
 
         pred_fake, pred_real = self.discriminate(
             input_semantics, fake_image, real_image)
 
-        G_losses['GAN'] = self.criterionGAN(pred_fake, True,
+        G_losses['GAN'] = self.criterionGAN(pred_fake, input_semantics, True,
                                             for_discriminator=False)
 
         if not self.cfg['TRAINING']['NO_GAN_FEAT_LOSS']:
@@ -188,9 +203,9 @@ class SpadeModel(torch.nn.Module):
         pred_fake, pred_real = self.discriminate(
             input_semantics, fake_image, real_image)
 
-        D_losses['D_Fake'] = self.criterionGAN(pred_fake, False,
+        D_losses['D_Fake'] = self.criterionGAN(pred_fake, input_semantics, False,
                                                for_discriminator=True)
-        D_losses['D_real'] = self.criterionGAN(pred_real, True,
+        D_losses['D_real'] = self.criterionGAN(pred_real, input_semantics, True,
                                                for_discriminator=True)
 
         return D_losses
@@ -240,6 +255,16 @@ class SpadeModel(torch.nn.Module):
 
     # Take the prediction of fake and real images from the combined batch
     def divide_pred(self, pred):
+
+        if self.cfg['TRAINING']['NET_D_SUB_ARCH'] == 'oasis':
+            if type(pred) == list:
+                fake = []
+                real = []
+                for p in pred:
+                    fake.append([p[:p.size(0) // 2]])
+                    real.append([p[p.size(0) // 2:]])
+                return fake, real
+
         # the prediction contains the intermediate outputs of multiscale GAN,
         # so it's usually a list
         if type(pred) == list:
@@ -251,7 +276,6 @@ class SpadeModel(torch.nn.Module):
         else:
             fake = pred[:pred.size(0) // 2]
             real = pred[pred.size(0) // 2:]
-
         return fake, real
 
     def reparameterize(self, mu, logvar):

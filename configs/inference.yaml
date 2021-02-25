@@ -4,7 +4,7 @@ INPUT:
   TEST: '/DISLOCATIONS/'
 
 USE_VAE: True
-IS_TRAINING: True
+IS_TRAINING: False
 CONTINUE_TRAINING: False
 
 TRAINING:
@@ -12,7 +12,7 @@ TRAINING:
     INIT_TYPE: 'xavier'
     INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
-    EXPERIMENT_NAME: 'baseline_no_attn_fixed'
+    EXPERIMENT_NAME: 'baseline_encoder'
     LABEL_NC: 4
     CONTAINS_DONT_CARE: False
     NO_INSTANCE: True
@@ -46,7 +46,7 @@ TRAINING:
     BETA2: 0.9
     NO_TTUR: False
     SAVE_MODEL_STEP: 1
-    WHICH_EPOCH: 'latest'
+    WHICH_EPOCH: 300
     NUM_WORKERS: 8
 
     NORM_E: 'spectralinstance'

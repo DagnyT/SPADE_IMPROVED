@@ -12,7 +12,7 @@ TRAINING:
     INIT_TYPE: 'xavier'
     INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
-    EXPERIMENT_NAME: 'baseline_no_attn_fixed'
+    EXPERIMENT_NAME: 'baseline_no_attn_oasis'
     LABEL_NC: 4
     CONTAINS_DONT_CARE: False
     NO_INSTANCE: True
@@ -20,7 +20,7 @@ TRAINING:
     MODEL: 'init'
     CUDA: True
     NO_GAN_FEAT_LOSS: False
-    GAN_MODE: 'hinge'
+    GAN_MODE: 'cross_ent'
     NO_VGG_LOSS: False
     LAMBDA_FEAT: 10.0
     LAMBDA_VGG: 10.0
@@ -39,7 +39,7 @@ TRAINING:
     LR: 0.0002
     START_EPOCH: 0
     END_EPOCHS: 200
-    BATCH_SIZE: 5
+    BATCH_SIZE: 2
     PLOT_EVERY_X_BATCHES: 20
     OPTIMIZER: Adam
     BETA1: 0.0
@@ -59,7 +59,7 @@ TRAINING:
 
     NGF: 64
     NUM_D: 6
-    NET_D_SUB_ARCH: 'n_layer'
+    NET_D_SUB_ARCH: 'oasis'
     N_LAYERS_D: 4
 
     OUTPUT_NC: 3

@@ -186,7 +186,7 @@ class SPADEGenerator(BaseNetwork):
             x = F.interpolate(seg, size=(self.sh, self.sw))
             x = self.fc(x)
 
-        x = self.attn(x)
+        # x = self.attn(x)
 
         x = self.head_0(x, seg)
 

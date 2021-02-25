@@ -65,6 +65,10 @@ class GANLoss(nn.Module):
             pass
         elif gan_mode == 'hinge':
             pass
+
+        elif gan_mode == 'cross_ent':
+            pass
+
         else:
             raise ValueError('Unexpected gan_mode {}'.format(gan_mode))
 
@@ -86,11 +90,32 @@ class GANLoss(nn.Module):
             self.zero_tensor.requires_grad_(False)
         return self.zero_tensor.expand_as(input)
 
-    def loss(self, input, target_is_real, for_discriminator=True):
+    def get_n1_target(self, input, label, target_is_real):
+
+        targets = self.get_target_tensor(input, target_is_real)
+        num_of_classes = label.shape[1]
+        integers = torch.argmax(label, dim=1)
+        targets = targets[:, 0, :, :] * num_of_classes
+
+        integers += targets.long()
+
+        integers = torch.clamp(integers, min=num_of_classes - 1) - num_of_classes + 1
+        return integers
+
+    def loss(self, input, label, target_is_real, for_discriminator=True):
         if self.gan_mode == 'original':  # cross entropy loss
             target_tensor = self.get_target_tensor(input, target_is_real)
             loss = F.binary_cross_entropy_with_logits(input, target_tensor)
             return loss
+        if self.gan_mode == 'cross_ent':
+            if for_discriminator:
+                target_tensor = self.get_n1_target(input, label, target_is_real)
+                loss =  loss = F.cross_entropy(input, target_tensor, reduction='none')
+            else:
+                minval = torch.min(-input - 1, self.get_zero_tensor(input))
+                loss = -torch.mean(minval)
+            return loss
+
         elif self.gan_mode == 'ls':
             target_tensor = self.get_target_tensor(input, target_is_real)
             return F.mse_loss(input, target_tensor)
@@ -113,21 +138,25 @@ class GANLoss(nn.Module):
             else:
                 return input.mean()
 
-    def __call__(self, input, target_is_real, for_discriminator=True):
+    sampling = nn.MaxPool2d(2)
+
+    def __call__(self, input, label, target_is_real, for_discriminator=True):
         # computing loss is a bit complicated because |input| may not be
         # a tensor, but list of tensors in case of multiscale discriminator
         if isinstance(input, list):
             loss = 0
-            for pred_i in input:
+            for idx, pred_i in enumerate(input):
                 if isinstance(pred_i, list):
                     pred_i = pred_i[-1]
-                loss_tensor = self.loss(pred_i, target_is_real, for_discriminator)
+                    if idx > 0:
+                        label = self.sampling(label)
+                loss_tensor = self.loss(pred_i, label, target_is_real, for_discriminator)
                 bs = 1 if len(loss_tensor.size()) == 0 else loss_tensor.size(0)
                 new_loss = torch.mean(loss_tensor.view(bs, -1), dim=1)
                 loss += new_loss
             return loss / len(input)
         else:
-            return self.loss(input, target_is_real, for_discriminator)
+            return self.loss(input, label, target_is_real, for_discriminator)
 
 
 class MeanShift(nn.Conv2d):
