@@ -13,7 +13,27 @@ import torch.nn.utils.spectral_norm as spectral_norm
 
 import torch
 import torch.nn as nn
+import segmentation_models_pytorch as smp
 
+class EffNet_Discriminator(BaseNetwork):
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg
+
+        self.aux_params = {
+            'pooling':'avg',
+            'dropout':0.2,
+            'activation':'sigmoid',
+            'classes': 1
+        }
+        self.model  = smp.Unet('efficientnet-b0',
+                               encoder_weights="imagenet",
+                               classes=cfg['TRAINING']['LABEL_NC'], aux_params=self.aux_params, in_channels=3)
+
+    def forward(self, input):
+            mask, label = self.model(input)
+            return mask, label
 
 class OASIS_Discriminator(BaseNetwork):
 
@@ -22,7 +42,7 @@ class OASIS_Discriminator(BaseNetwork):
         self.cfg = cfg
         sp_norm = spectral_norm
         output_channel = cfg['TRAINING']['OUTPUT_NC'] + 1
-        self.channels = [7, 128, 128, 256, 512]
+        self.channels = [7, 128, 128, 256]
         self.body_up   = nn.ModuleList([])
         self.body_down = nn.ModuleList([])
         # encoder part
@@ -120,6 +140,10 @@ class MultiscaleDiscriminator(BaseNetwork):
 
         elif subarch == 'oasis':
             netD = OASIS_Discriminator(cfg)
+
+        elif subarch == 'effnet':
+            netD = EffNet_Discriminator(cfg)
+
         else:
             raise ValueError('unrecognized discriminator subarchitecture %s' % subarch)
         return netD

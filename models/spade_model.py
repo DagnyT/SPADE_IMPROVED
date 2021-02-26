@@ -181,7 +181,7 @@ class SpadeModel(torch.nn.Module):
             GAN_Feat_loss = self.FloatTensor(1).fill_(0)
             for i in range(num_D):  # for each discriminator
                 # last output is the final prediction, so we exclude it
-                num_intermediate_outputs = len(pred_fake[i]) - 1
+                num_intermediate_outputs = len(pred_fake[i])
                 for j in range(num_intermediate_outputs):  # for each layer output
                     unweighted_loss = self.criterionFeat(
                         pred_fake[i][j], pred_real[i][j].detach())
@@ -247,14 +247,14 @@ class SpadeModel(torch.nn.Module):
 
     def discriminate(self, input_semantics, fake_image, real_image):
 
-        fake_concat = torch.cat([input_semantics, fake_image], dim=1)
-        real_concat = torch.cat([input_semantics, real_image], dim=1)
+        # fake_concat = torch.cat([input_semantics, fake_image], dim=1)
+        # real_concat = torch.cat([input_semantics, real_image], dim=1)
 
         # In Batch Normalization, the fake and real images are
         # recommended to be in the same batch to avoid disparate
         # statistics in fake and real images.
         # So both fake and real images are fed to D all at once.
-        fake_and_real = torch.cat([fake_concat, real_concat], dim=0)
+        fake_and_real = torch.cat([fake_image, real_image], dim=0)
 
         discriminator_out = self.netD(fake_and_real)
 
@@ -264,6 +264,15 @@ class SpadeModel(torch.nn.Module):
 
     # Take the prediction of fake and real images from the combined batch
     def divide_pred(self, pred):
+
+        if self.cfg['TRAINING']['NET_D_SUB_ARCH'] == 'effnet':
+            if type(pred) == list:
+                fake, real = [], []
+                for p in pred:
+                    fake.append([p[0][:p[0].size(0) // 2],p[1][:p[1].size(0) // 2]])
+                    real.append([p[0][p[0].size(0) // 2:], p[1][p[1].size(0) // 2:]])
+
+                return fake, real
 
         if self.cfg['TRAINING']['NET_D_SUB_ARCH'] == 'oasis':
             if type(pred) == list:

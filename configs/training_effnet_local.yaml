@@ -1,0 +1,97 @@
+INPUT:
+  TRAIN: 'data/dislocations_segmentation_dataset/'
+  VAL: 'data/dislocations_segmentation_dataset/'
+  TEST: '/DISLOCATIONS/'
+
+USE_VAE: True
+IS_TRAINING: True
+CONTINUE_TRAINING: False
+
+TRAINING:
+
+    INIT_TYPE: 'xavier'
+    INIT_VARIANCE: 0.02
+    TRAINING_SET: 'dislocations'
+    EXPERIMENT_NAME: 'baseline_effnet'
+    LABEL_NC: 4
+    CONTAINS_DONT_CARE: False
+    NO_INSTANCE: True
+    MODEL_DIR: 'models'
+    MODEL: 'init'
+    CUDA: True
+    NO_GAN_FEAT_LOSS: False
+    GAN_MODE: 'cross_ent'
+    NO_VGG_LOSS: False
+    LAMBDA_FEAT: 10.0
+    LAMBDA_VGG: 10.0
+    LAMBDA_KLD: 0.05
+    N_ITER: 200
+    N_ITER_DECAY: 100
+    TF_LOG: False
+    NO_HTML: False
+    DISPLAY_WINSIZE: 400
+    GPU_ID: 0
+    SEED: 42
+    INPUT_LAYER: 1
+    IMAGE_SIZE_H: 256
+    IMAGE_SIZE_W: 256
+    LOAD_PRE_TRAINING: False
+    LR: 0.0002
+    START_EPOCH: 0
+    END_EPOCHS: 200
+    BATCH_SIZE: 1
+    PLOT_EVERY_X_BATCHES: 20
+    OPTIMIZER: Adam
+    BETA1: 0.0
+    BETA2: 0.9
+    NO_TTUR: False
+    SAVE_MODEL_STEP: 1
+    WHICH_EPOCH: 'latest'
+    NUM_WORKERS: 8
+
+    NORM_E: 'spectralinstance'
+    NORM_G: 'spectralspadesyncbatch3x3'
+    NORM_D: 'spectralinstance'
+
+    CROP_SIZE: 512
+    ASPECT_RATIO: 1.0
+    NUM_UPSAMPLING_LAYERS: 'normal'
+
+    NGF: 64
+    NUM_D: 3
+    NET_D_SUB_ARCH: 'effnet'
+    N_LAYERS_D: 3
+
+    OUTPUT_NC: 3
+
+    Z_DIM: 256
+    ENCODER:
+        NDF: 64
+
+
+TEST:
+    IMAGE_SIZE_H: 256
+    IMAGE_SIZE_W: 256
+    TESTING: True
+    TESTING_EVERY: 1
+    NMS: 10
+    BATCH_SIZE: 5
+    MIN_PROB: 0.5
+    WEIGHTS: ''
+
+VISUALIZER:
+    ENABLE: True
+    LOG_INTERVAL: 10
+
+LOGGING:
+
+  ENABLE_LOGGING: True
+  ENABLE_PLOTTING: False
+  ENABLE_VISUALIZING: True
+  FID: 100
+
+  LOG_INTERVAL: 10
+  PLOT_INTERVALS: 10
+  SAVE_EVERY: 10
+  IMG_DIR: 'images/'
+  LOG_DIR: 'checkpoints/'

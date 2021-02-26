@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from torchvision import transforms
+from PIL import Image
 
 class VGG19(torch.nn.Module):
     def __init__(self, requires_grad=False):
@@ -109,10 +111,14 @@ class GANLoss(nn.Module):
             return loss
         if self.gan_mode == 'cross_ent':
             if for_discriminator:
-                target_tensor = self.get_n1_target(input, label, target_is_real)
-                loss =  loss = F.cross_entropy(input, target_tensor, reduction='none')
+                target_tensor = self.get_target_tensor(input[1], target_is_real)
+                loss = F.binary_cross_entropy(input[1], target_tensor)
+                label = torch.argmax(label, dim=1).long()
+
+                loss_seg = torch.mean(F.cross_entropy(input[0], label, reduction='none'))
+                loss = 0.5*loss + 0.5*loss_seg
             else:
-                minval = torch.min(-input - 1, self.get_zero_tensor(input))
+                minval = torch.min(-input[1] - 1, self.get_zero_tensor(input[1]))
                 loss = -torch.mean(minval)
             return loss
 
@@ -138,7 +144,7 @@ class GANLoss(nn.Module):
             else:
                 return input.mean()
 
-    sampling = nn.MaxPool2d(2)
+    sampling = nn.AvgPool2d(2)
 
     def __call__(self, input, label, target_is_real, for_discriminator=True):
         # computing loss is a bit complicated because |input| may not be
@@ -146,10 +152,10 @@ class GANLoss(nn.Module):
         if isinstance(input, list):
             loss = 0
             for idx, pred_i in enumerate(input):
-                if isinstance(pred_i, list):
-                    pred_i = pred_i[-1]
-                    if idx > 0:
-                        label = self.sampling(label)
+                if idx >0:
+                    label = self.sampling(label)
+                # if isinstance(pred_i, list):
+                #     pred_i = pred_i[-1]
                 loss_tensor = self.loss(pred_i, label, target_is_real, for_discriminator)
                 bs = 1 if len(loss_tensor.size()) == 0 else loss_tensor.size(0)
                 new_loss = torch.mean(loss_tensor.view(bs, -1), dim=1)
