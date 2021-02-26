@@ -22,6 +22,26 @@ def convert_labels(label_tensor):
 
     return label_tensor
 
+
+def preprocess_input(cfg, image, label):
+
+    image = transforms.functional.resize(image, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']),
+                                         Image.BICUBIC)
+    label = transforms.functional.resize(label,
+                                              (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']),
+                                              Image.NEAREST)
+
+    label = convert_labels(np.array(label))
+
+    image = transforms.functional.to_tensor(np.array(image))
+
+    image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+    label = torch.from_numpy(label).unsqueeze(0)
+
+    return image_tensor, label
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Inference for synthetic data - SPADE model')
@@ -72,53 +92,39 @@ if __name__ == '__main__':
     labels = os.listdir(input_folders_test[0])
     for label_ in tqdm(labels):
 
-            img_name = np.random.choice(style_images_test, 1)[0]
+        image = Image.open(os.path.join(style_directory_test, img_name))
+        image = image.convert('RGB')
 
-            label_left = Image.open(os.path.join(input_folders_test[0], label_)).convert('L')
-            label_right = Image.open(os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT'))).convert('L')
+        img_name = np.random.choice(style_images_test, 1)[0]
 
-            image = Image.open(os.path.join(style_directory_test, img_name))
-            image = image.convert('RGB')
+        label_left = Image.open(os.path.join(input_folders_test[0], label_)).convert('L')
+        label_right = Image.open(os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT'))).convert('L')
 
-            image = transforms.functional.resize(image, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
-            label_left = transforms.functional.resize(label_left, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
-            label_right = transforms.functional.resize(label_right, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
+        image_tensor, label_tensor_left = preprocess_input(cfg, image, label_left)
+        _, label_tensor_right = preprocess_input(cfg, image, label_right)
 
-            label_left = convert_labels(np.array(label_left))
-            label_right = convert_labels(np.array(label_right))
-
-            image = transforms.functional.to_tensor(np.array(image))
-
-            image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-
-            label_tensor_left = torch.from_numpy(label_left).unsqueeze(0)
-            label_tensor_right = torch.from_numpy(label_right).unsqueeze(0)
-
-            seed = np.random.randint(1,100000)
-            data = {'label': label_tensor_left.unsqueeze(0),
+        seed = np.random.randint(1,100000)
+        data = {'label': label_tensor_left.unsqueeze(0),
                           'image': image_tensor.unsqueeze(0),
                           'path': os.path.join(input_folders_test[0], label_),
 
                     'seed':seed}
 
-            fake_image_left = model.forward(data, 'inference')
+        fake_image_left = model.forward(data, 'inference')
 
-            fake_image_left = util.tensor2im(fake_image_left, tile=False)
+        fake_image_left = util.tensor2im(fake_image_left, tile=False)
 
-            Image.fromarray(fake_image_left[0]).save(output_folders_test[0]+label_)
+        Image.fromarray(fake_image_left[0]).save(output_folders_test[0]+label_)
 
-            data = {'label': label_tensor_right.unsqueeze(0),
+        data = {'label': label_tensor_right.unsqueeze(0),
                           'image': image_tensor.unsqueeze(0),
                           'path': os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT')),
 
                     'seed':seed }
 
-            fake_image_right = model.forward(data, 'inference')
-
-            fake_image_right = util.tensor2im(fake_image_right, tile=False)
-
-            Image.fromarray(fake_image_right[0]).save(output_folders_test[1]+label_.replace('LEFT','RIGHT'))
-
+        fake_image_right = model.forward(data, 'inference')
+        fake_image_right = util.tensor2im(fake_image_right, tile=False)
+        Image.fromarray(fake_image_right[0]).save(output_folders_test[1]+label_.replace('LEFT','RIGHT'))
 
     # train
     labels = os.listdir(input_folders[0])
@@ -132,19 +138,8 @@ if __name__ == '__main__':
             image = Image.open(os.path.join(style_directory_train, img_name))
             image = image.convert('RGB')
 
-            image = transforms.functional.resize(image, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.BICUBIC)
-            label_left = transforms.functional.resize(label_left, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
-            label_right = transforms.functional.resize(label_right, (cfg['TRAINING']['IMAGE_SIZE_W'], cfg['TRAINING']['IMAGE_SIZE_H']), Image.NEAREST)
-
-            label_left = convert_labels(np.array(label_left))
-            label_right = convert_labels(np.array(label_right))
-
-            image = transforms.functional.to_tensor(np.array(image))
-
-            image_tensor = transforms.functional.normalize(image, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-
-            label_tensor_left = torch.from_numpy(label_left).unsqueeze(0)
-            label_tensor_right = torch.from_numpy(label_right).unsqueeze(0)
+            image_tensor, label_tensor_left = preprocess_input(cfg, image, label_left)
+            _, label_tensor_right = preprocess_input(cfg, image, label_right)
 
             seed = np.random.randint(1,100000)
             data = {'label': label_tensor_left.unsqueeze(0),
