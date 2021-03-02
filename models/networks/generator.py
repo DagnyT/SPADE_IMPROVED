@@ -141,7 +141,7 @@ class SPADEGenerator(BaseNetwork):
         self.up_0 = SPADEResnetBlock(16 * nf, 8 * nf, cfg)
         self.up_1 = SPADEResnetBlock(8 * nf, 4 * nf, cfg)
         self.up_2 = SPADEResnetBlock(4 * nf, 2 * nf, cfg)
-        # self.up_3 = SPADEResnetBlock(2 * nf, 1 * nf, cfg)
+        self.up_3 = SPADEResnetBlock(2 * nf, 1 * nf, cfg)
 
         final_nc = nf
 
@@ -149,7 +149,7 @@ class SPADEGenerator(BaseNetwork):
             self.up_4 = SPADEResnetBlock(1 * nf, nf // 2, cfg)
             final_nc = nf // 2
 
-        self.conv_img = nn.Conv2d(128, cfg['TRAINING']['OUTPUT_NC'], 3, padding=1)
+        self.conv_img = nn.Conv2d(final_nc, cfg['TRAINING']['OUTPUT_NC'], 3, padding=1)
 
         self.up = nn.Upsample(scale_factor=2)
 
@@ -186,7 +186,7 @@ class SPADEGenerator(BaseNetwork):
             x = F.interpolate(seg, size=(self.sh, self.sw))
             x = self.fc(x)
 
-        # x = self.attn(x)
+        x = self.attn(x)
 
         x = self.head_0(x, seg)
 
@@ -205,8 +205,8 @@ class SPADEGenerator(BaseNetwork):
         x = self.up_1(x, seg)
         x = self.up(x)
         x = self.up_2(x, seg)
-        # x = self.up(x)
-        # x = self.up_3(x, seg)
+        x = self.up(x)
+        x = self.up_3(x, seg)
 
         if self.cfg['TRAINING']['NUM_UPSAMPLING_LAYERS'] == 'most':
             x = self.up(x)

@@ -181,8 +181,8 @@ class SpadeModel(torch.nn.Module):
             GAN_Feat_loss = self.FloatTensor(1).fill_(0)
             for i in range(num_D):  # for each discriminator
                 # last output is the final prediction, so we exclude it
-                num_intermediate_outputs = len(pred_fake[i])
-                for j in range(num_intermediate_outputs):  # for each layer output
+                num_intermediate_outputs = len(pred_fake[i])-2
+                for j in range(1, num_intermediate_outputs):  # for each layer output
                     unweighted_loss = self.criterionFeat(
                         pred_fake[i][j], pred_real[i][j].detach())
                     GAN_Feat_loss += unweighted_loss * self.cfg['TRAINING']['LAMBDA_FEAT'] / num_D
@@ -269,8 +269,8 @@ class SpadeModel(torch.nn.Module):
             if type(pred) == list:
                 fake, real = [], []
                 for p in pred:
-                    fake.append([p[0][:p[0].size(0) // 2],p[1][:p[1].size(0) // 2]])
-                    real.append([p[0][p[0].size(0) // 2:], p[1][p[1].size(0) // 2:]])
+                        fake.append([tensor[:tensor.size(0) // 2] for tensor in p])
+                        real.append([tensor[tensor.size(0) // 2:] for tensor in p])
 
                 return fake, real
 

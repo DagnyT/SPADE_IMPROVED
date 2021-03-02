@@ -111,14 +111,14 @@ class GANLoss(nn.Module):
             return loss
         if self.gan_mode == 'cross_ent':
             if for_discriminator:
-                target_tensor = self.get_target_tensor(input[1], target_is_real)
-                loss = F.binary_cross_entropy(input[1], target_tensor)
+                target_tensor = self.get_target_tensor(input[-1], target_is_real)
+                loss = F.binary_cross_entropy(input[-1], target_tensor)
                 label = torch.argmax(label, dim=1).long()
 
-                loss_seg = torch.mean(F.cross_entropy(input[0], label, reduction='none'))
-                loss = 0.5*loss + 0.5*loss_seg
+                loss_seg = torch.mean(F.cross_entropy(input[-2], label, reduction='none'))
+                loss = loss + loss_seg
             else:
-                minval = torch.min(-input[1] - 1, self.get_zero_tensor(input[1]))
+                minval = torch.min(-input[-1] - 1, self.get_zero_tensor(input[-1]))
                 loss = -torch.mean(minval)
             return loss
 

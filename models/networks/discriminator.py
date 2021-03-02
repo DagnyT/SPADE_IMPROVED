@@ -23,17 +23,20 @@ class EffNet_Discriminator(BaseNetwork):
 
         self.aux_params = {
             'pooling':'avg',
-            'dropout':0.2,
             'activation':'sigmoid',
             'classes': 1
         }
         self.model  = smp.Unet('efficientnet-b0',
-                               encoder_weights="imagenet",
                                classes=cfg['TRAINING']['LABEL_NC'], aux_params=self.aux_params, in_channels=3)
 
     def forward(self, input):
-            mask, label = self.model(input)
-            return mask, label
+
+        x =  self.model.encoder(input)
+        mask, label = self.model(input)
+        x.append(mask)
+        x.append(label)
+
+        return x
 
 class OASIS_Discriminator(BaseNetwork):
 

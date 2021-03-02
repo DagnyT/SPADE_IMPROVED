@@ -48,8 +48,8 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
                 print('Train', epoch, cur_iter, g_loss, d_loss)
                 tb_logger.add_scalars_to_tensorboard('Train', epoch, cur_iter, loss_G, loss_D)
             #
-            # if cur_iter % cfg['LOGGING']['FID'] == 0:
-            #     is_best = fid_computer.update(model, cur_iter)
+            if cur_iter % cfg['LOGGING']['FID'] == 0:
+                is_best = fid_computer.update(model, cur_iter)
 
             if cfg['VISUALIZER']['ENABLE'] and cur_iter % cfg['VISUALIZER']['LOG_INTERVAL'] == 0:
 
@@ -74,7 +74,7 @@ def do_train(cfg, model, train_loader, val_loader, optimizer_G, optimizer_D, fid
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Training improved SPADE model')
-    parser.add_argument('--path_ymlfile', type=str, default='configs/training_effnet_local.yaml', help='Path to yaml file.')
+    parser.add_argument('--path_ymlfile', type=str, default='configs/training_effnet.yaml', help='Path to yaml file.')
     opt = parser.parse_args()
 
     with open(opt.path_ymlfile, 'r') as ymlfile:
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     visualizer = visualizer.Visualizer(cfg)
     print('Fid initialization')
     fid_computer = None
-    # fid_computer = fid_scores.fid_pytorch(cfg, val_loader)
+    fid_computer = fid_scores.fid_pytorch(cfg, val_loader)
 
     print('Fid was initialized')
 
