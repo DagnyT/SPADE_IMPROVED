@@ -58,20 +58,30 @@ if __name__ == '__main__':
 
     model = build_model(cfg)
 
-    input_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/segmentation_left_image',
-                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset/dislocations/segmentation_right_image']
+    input_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/train/segmentation_left_image/',
+                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/train/segmentation_right_image/']
 
-    input_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/segmentation_left_image',
-                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V2/dislocations_dataset_test/dislocations/segmentation_right_image']
+    input_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/test/segmentation_left_image/',
+                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/test/segmentation_right_image/']
+
+    input_folders_val = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/val/segmentation_left_image/',
+                     '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/val/segmentation_right_image/']
 
 
-    output_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/left_image/',
-                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/right_image/']
+    output_folders = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/train/left_image/',
+                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/train/right_image/']
 
-    output_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset_test/dislocations/left_image/',
-                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset_test/dislocations/right_image/']
+    output_folders_test = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/test/left_image/',
+                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/test/right_image/']
+
+    output_folders_val = ['/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/val/left_image/',
+                      '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/Synthetic_Dislocations_V3/dislocations_dataset/dislocations/val/right_image/']
 
     for folder_ in output_folders_test:
+        if not os.path.exists(folder_):
+            os.makedirs(folder_)
+
+    for folder_ in output_folders_val:
         if not os.path.exists(folder_):
             os.makedirs(folder_)
 
@@ -81,7 +91,7 @@ if __name__ == '__main__':
 
 
     style_directory_train = '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/train_img/'
-    style_directory_test = '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/val_img/'
+    style_directory_test = '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/val_img_test/'
 
     style_images_train = os.listdir(style_directory_train)
     style_images_test = os.listdir(style_directory_test)
@@ -92,10 +102,10 @@ if __name__ == '__main__':
     labels = os.listdir(input_folders_test[0])
     for label_ in tqdm(labels):
 
+        img_name = np.random.choice(style_images_test, 1)[0]
+
         image = Image.open(os.path.join(style_directory_test, img_name))
         image = image.convert('RGB')
-
-        img_name = np.random.choice(style_images_test, 1)[0]
 
         label_left = Image.open(os.path.join(input_folders_test[0], label_)).convert('L')
         label_right = Image.open(os.path.join(input_folders_test[1], label_.replace('LEFT','RIGHT'))).convert('L')
@@ -168,3 +178,39 @@ if __name__ == '__main__':
 
 
 
+    # labels = os.listdir(input_folders_val[0])
+    # for label_ in tqdm(labels):
+    #
+    #     img_name = np.random.choice(style_images_test, 1)[0]
+    #
+    #     image = Image.open(os.path.join(style_directory_test, img_name))
+    #     image = image.convert('RGB')
+    #
+    #     label_left = Image.open(os.path.join(input_folders_val[0], label_)).convert('L')
+    #     label_right = Image.open(os.path.join(input_folders_val[1], label_.replace('LEFT','RIGHT'))).convert('L')
+    #
+    #     image_tensor, label_tensor_left = preprocess_input(cfg, image, label_left)
+    #     _, label_tensor_right = preprocess_input(cfg, image, label_right)
+    #
+    #     seed = np.random.randint(1,100000)
+    #     data = {'label': label_tensor_left.unsqueeze(0),
+    #                       'image': image_tensor.unsqueeze(0),
+    #                       'path': os.path.join(input_folders_test[0], label_),
+    #
+    #                 'seed':seed}
+    #
+    #     fake_image_left = model.forward(data, 'inference')
+    #
+    #     fake_image_left = util.tensor2im(fake_image_left, tile=False)
+    #
+    #     Image.fromarray(fake_image_left[0]).save(output_folders_val[0]+label_)
+    #
+    #     data = {'label': label_tensor_right.unsqueeze(0),
+    #                       'image': image_tensor.unsqueeze(0),
+    #                       'path': os.path.join(output_folders_val[1], label_.replace('LEFT','RIGHT')),
+    #
+    #                 'seed':seed }
+    #
+    #     fake_image_right = model.forward(data, 'inference')
+    #     fake_image_right = util.tensor2im(fake_image_right, tile=False)
+    #     Image.fromarray(fake_image_right[0]).save(output_folders_val[1]+label_.replace('LEFT','RIGHT'))

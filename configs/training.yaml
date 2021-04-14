@@ -12,7 +12,7 @@ TRAINING:
     INIT_TYPE: 'xavier'
     INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
-    EXPERIMENT_NAME: 'baseline_no_attn_fixed'
+    EXPERIMENT_NAME: 'baseline_most_encoder_loss_attn_grad_loss_lpips'
     LABEL_NC: 4
     CONTAINS_DONT_CARE: False
     NO_INSTANCE: True
@@ -55,7 +55,7 @@ TRAINING:
 
     CROP_SIZE: 512
     ASPECT_RATIO: 1.0
-    NUM_UPSAMPLING_LAYERS: 'normal'
+    NUM_UPSAMPLING_LAYERS: 'most'
 
     NGF: 64
     NUM_D: 6
@@ -75,7 +75,7 @@ TEST:
     TESTING: True
     TESTING_EVERY: 1
     NMS: 10
-    BATCH_SIZE: 5
+    BATCH_SIZE: 1
     MIN_PROB: 0.5
     WEIGHTS: ''
 

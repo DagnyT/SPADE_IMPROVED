@@ -12,7 +12,7 @@ TRAINING:
     INIT_TYPE: 'xavier'
     INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
-    EXPERIMENT_NAME: 'baseline_effnet'
+    EXPERIMENT_NAME: 'baseline_effnet_concat_no_imagenet'
     LABEL_NC: 4
     CONTAINS_DONT_CARE: False
     NO_INSTANCE: True

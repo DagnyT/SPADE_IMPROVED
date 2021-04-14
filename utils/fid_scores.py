@@ -7,6 +7,8 @@ from pathlib import Path
 from PIL import Image
 from utils.fid_folder.inception import InceptionV3
 import matplotlib.pyplot as plt
+from utils import util
+from torchvision import transforms
 
 # --------------------------------------------------------------------------#
 # This code is an adapted version of https://github.com/mseitzer/pytorch-fid
@@ -40,7 +42,6 @@ class fid_pytorch():
             for i, data_i in enumerate(self.val_dataloader):
                 image = data_i["image"]
                 image = image.cuda()
-                image = (image + 1) / 2
                 pool_val = self.model_inc(image.float())[0][:, :, 0, 0]
                 pool += [pool_val]
         return torch.cat(pool, 0)
@@ -52,7 +53,9 @@ class fid_pytorch():
             for i, data_i in enumerate(self.val_dataloader):
                 input_semantics, real_image = models.preprocess_input(data_i)
                 generated ,_  ,_ = models.generate_fake(input_semantics, real_image)
-                generated = (generated + 1) / 2
+                generated = util.tensor2im(generated, tile=False).squeeze()
+                generated = transforms.functional.to_tensor(np.array(generated))
+                generated = transforms.functional.normalize(generated, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)).unsqueeze(0).cuda()
                 pool_val = self.model_inc(generated.float())[0][:, :, 0, 0]
                 pool += [pool_val]
             pool = torch.cat(pool, 0)

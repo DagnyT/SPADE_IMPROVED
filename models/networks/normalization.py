@@ -64,6 +64,29 @@ def get_nonspade_norm_layer(cfg, norm_type='instance'):
 # |norm_nc|: the #channels of the normalized activations, hence the output dim of SPADE
 # |label_nc|: the #channels of the input semantic map, hence the input dim of SPADE
 
+class AdaIN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def mu(self, x):
+        """ Takes a (n,c,h,w) tensor as input and returns the average across
+        it's spatial dimensions as (h,w) tensor [See eq. 5 of paper]"""
+        return torch.sum(x,(2,3))/(x.shape[2]*x.shape[3])
+
+    def sigma(self, x):
+        """ Takes a (n,c,h,w) tensor as input and returns the standard deviation
+        across it's spatial dimensions as (h,w) tensor [See eq. 6 of paper] Note
+        the permutations are required for broadcasting"""
+        return torch.sqrt((torch.sum((x.permute([2,3,0,1])-self.mu(x)).permute([2,3,0,1])**2,(2,3))+0.000000023)/(x.shape[2]*x.shape[3]))
+
+    def forward(self, x, ys, yb):
+        """ Takes a content embeding x and a style embeding y and changes
+        transforms the mean and standard deviation of the content embedding to
+        that of the style. [See eq. 8 of paper] Note the permutations are
+        required for broadcasting"""
+        return (ys*((x.permute([2,3,0,1])-self.mu(x))/self.sigma(x)) + yb).permute([2,3,0,1])
+
+
 class PONO(nn.Module):
     def __init__(self, input_size=None, return_stats=False, affine=True, eps=1e-5):
         super(PONO, self).__init__()
@@ -101,6 +124,10 @@ class SPADE(nn.Module):
             self.param_free_norm = SynchronizedBatchNorm2d(norm_nc, affine=False)
         elif param_free_norm_type == 'batch':
             self.param_free_norm = nn.BatchNorm2d(norm_nc, affine=False)
+
+        elif param_free_norm_type == 'adain':
+            self.param_free_norm = AdaIN()
+
         else:
             raise ValueError('%s is not a recognized param-free norm type in SPADE'
                              % param_free_norm_type)
@@ -120,6 +147,8 @@ class SPADE(nn.Module):
     def forward(self, x, segmap):
 
         # Part 1. generate parameter-free normalized activations
+
+
         normalized = self.param_free_norm(x)
 
         # Part 2. produce scaling and bias conditioned on semantic map

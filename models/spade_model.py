@@ -5,10 +5,13 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 
 import torch
 import os
+import lpips
 from models.networks.encoder import ConvEncoder
 from models.networks.generator import SPADEGenerator
 from models.networks.discriminator import MultiscaleDiscriminator
 from models.networks.loss import GANLoss, VGGLoss, KLDLoss, GradLoss
+from models.networks.vae import VAE
+import torchvision
 
 class SpadeModel(torch.nn.Module):
 
@@ -21,6 +24,9 @@ class SpadeModel(torch.nn.Module):
             else torch.ByteTensor
 
         self.netG, self.netD, self.netE = self.initialize_networks(cfg)
+
+        self.transform = torchvision.transforms.Compose([
+            torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         self.old_lr = cfg['TRAINING']["LR"]
 
@@ -36,12 +42,13 @@ class SpadeModel(torch.nn.Module):
             if cfg['USE_VAE']:
                 self.KLDLoss = KLDLoss()
             self.GradLoss = GradLoss()
+            self.LPIPS = lpips.LPIPS(net='vgg')
+            self.LPIPS.cuda()
 
     def inference_mode(self):
 
         self.netG.eval()
         self.netE.eval()
-
 
     def forward(self, data, mode):
         input_semantics, real_image = self.preprocess_input(data)
@@ -59,8 +66,7 @@ class SpadeModel(torch.nn.Module):
             return mu, logvar
         elif mode == 'inference':
             with torch.no_grad():
-                seed = data['seed']
-                fake_image, _,_ = self.generate_fake(input_semantics, real_image, seed)
+                fake_image, _,_ = self.generate_fake(input_semantics, real_image)
             return fake_image
         else:
             raise ValueError("|mode| is invalid")
@@ -112,22 +118,24 @@ class SpadeModel(torch.nn.Module):
 
         netG = SPADEGenerator(cfg)
         netD = MultiscaleDiscriminator(cfg) if cfg['IS_TRAINING'] else None
+        # netE = VAE(cfg)
         netE = ConvEncoder(cfg) if cfg['USE_VAE'] else None
 
         netG.cuda()
         netE.cuda()
 
+        netG.init_weights(cfg)
+        netE.init_weights(cfg)
+
         if cfg['IS_TRAINING']:
 
             netD.cuda()
             netD.init_weights(cfg)
-
-        netG.init_weights(cfg)
-        netE.init_weights(cfg)
-
+            # dict_ = torch.load('/cvlabdata2/cvlab/datasets_anastasiia/dislocations/SPADE_improved/checkpoints/baseline_most_encoder_loss_attn/280_net_vae.pth')
+            # print('LOADED NET - E VAE')
+            # netE.load_state_dict(dict_)
+            # netE.eval()
         if not cfg['IS_TRAINING'] or cfg['CONTINUE_TRAINING']:
-
-            print('Loading networks from file')
             netG = self.load_network(netG, 'G', cfg['TRAINING']['WHICH_EPOCH'], cfg)
             if cfg['IS_TRAINING']:
                 netD = self.load_network(netD, 'D', cfg['TRAINING']['WHICH_EPOCH'], cfg)
@@ -158,22 +166,30 @@ class SpadeModel(torch.nn.Module):
 
         return input_semantics, data['image']
 
+
+
     def compute_generator_loss(self, input_semantics, real_image):
         G_losses = {}
 
         fake_image, KLD_loss, Encoder_Loss = self.generate_fake(
             input_semantics, real_image, compute_kld_loss=self.cfg['USE_VAE'])
 
-        # G_losses['GradLoss'] = self.GradLoss(fake_image, real_image)*10
+        G_losses['GradLoss'] = self.GradLoss(fake_image, real_image)*10
 
         if self.cfg['USE_VAE']:
             G_losses['KLD'] = KLD_loss
-            # G_losses['Encoder_Loss'] = Encoder_Loss*10
+            G_losses['Encoder_Loss'] = Encoder_Loss*10
+
+        G_losses['LPIPS'] = 0
+        for idx, _ in enumerate(fake_image):
+            G_losses['LPIPS'] += self.LPIPS.forward(self.transform(fake_image[idx]), self.transform(real_image[idx]))
 
         pred_fake, pred_real = self.discriminate(
             input_semantics, fake_image, real_image)
 
-        G_losses['GAN'] = self.criterionGAN(pred_fake, input_semantics, True,
+
+
+        G_losses['GAN'] = self.criterionGAN(pred_fake, True,
                                             for_discriminator=False)
 
         if not self.cfg['TRAINING']['NO_GAN_FEAT_LOSS']:
@@ -181,8 +197,8 @@ class SpadeModel(torch.nn.Module):
             GAN_Feat_loss = self.FloatTensor(1).fill_(0)
             for i in range(num_D):  # for each discriminator
                 # last output is the final prediction, so we exclude it
-                num_intermediate_outputs = len(pred_fake[i])-2
-                for j in range(1, num_intermediate_outputs):  # for each layer output
+                num_intermediate_outputs = len(pred_fake[i]) - 1
+                for j in range(num_intermediate_outputs):  # for each layer output
                     unweighted_loss = self.criterionFeat(
                         pred_fake[i][j], pred_real[i][j].detach())
                     GAN_Feat_loss += unweighted_loss * self.cfg['TRAINING']['LAMBDA_FEAT'] / num_D
@@ -204,9 +220,9 @@ class SpadeModel(torch.nn.Module):
         pred_fake, pred_real = self.discriminate(
             input_semantics, fake_image, real_image)
 
-        D_losses['D_Fake'] = self.criterionGAN(pred_fake, input_semantics, False,
+        D_losses['D_Fake'] = self.criterionGAN(pred_fake, False,
                                                for_discriminator=True)
-        D_losses['D_real'] = self.criterionGAN(pred_real, input_semantics, True,
+        D_losses['D_real'] = self.criterionGAN(pred_real, True,
                                                for_discriminator=True)
 
         return D_losses
@@ -216,18 +232,10 @@ class SpadeModel(torch.nn.Module):
         z = self.reparameterize(mu, logvar)
         return z, mu, logvar
 
-    def encode_z_with_seed(self, real_image, seed):
-        mu, logvar = self.netE(real_image)
-        z = self.reparameterize_with_seed(mu, logvar, seed)
-        return z, mu, logvar
-
-    def generate_fake(self, input_semantics, real_image, compute_kld_loss=False, seed=42):
+    def generate_fake(self, input_semantics, real_image, compute_kld_loss=False):
         z = None
         KLD_loss = None
-        if not self.cfg['IS_TRAINING']:
-            z, mu, logvar = self.encode_z_with_seed(real_image, seed)
-
-        elif self.cfg['USE_VAE']:
+        if self.cfg['USE_VAE']:
             z, mu, logvar = self.encode_z(real_image)
             if compute_kld_loss:
                 KLD_loss = self.KLDLoss(mu, logvar) * self.cfg['TRAINING']['LAMBDA_KLD']
@@ -247,14 +255,14 @@ class SpadeModel(torch.nn.Module):
 
     def discriminate(self, input_semantics, fake_image, real_image):
 
-        # fake_concat = torch.cat([input_semantics, fake_image], dim=1)
-        # real_concat = torch.cat([input_semantics, real_image], dim=1)
+        fake_concat = torch.cat([input_semantics, fake_image], dim=1)
+        real_concat = torch.cat([input_semantics, real_image], dim=1)
 
         # In Batch Normalization, the fake and real images are
         # recommended to be in the same batch to avoid disparate
         # statistics in fake and real images.
         # So both fake and real images are fed to D all at once.
-        fake_and_real = torch.cat([fake_image, real_image], dim=0)
+        fake_and_real = torch.cat([fake_concat, real_concat], dim=0)
 
         discriminator_out = self.netD(fake_and_real)
 
@@ -264,25 +272,6 @@ class SpadeModel(torch.nn.Module):
 
     # Take the prediction of fake and real images from the combined batch
     def divide_pred(self, pred):
-
-        if self.cfg['TRAINING']['NET_D_SUB_ARCH'] == 'effnet':
-            if type(pred) == list:
-                fake, real = [], []
-                for p in pred:
-                        fake.append([tensor[:tensor.size(0) // 2] for tensor in p])
-                        real.append([tensor[tensor.size(0) // 2:] for tensor in p])
-
-                return fake, real
-
-        if self.cfg['TRAINING']['NET_D_SUB_ARCH'] == 'oasis':
-            if type(pred) == list:
-                fake = []
-                real = []
-                for p in pred:
-                    fake.append([p[:p.size(0) // 2]])
-                    real.append([p[p.size(0) // 2:]])
-                return fake, real
-
         # the prediction contains the intermediate outputs of multiscale GAN,
         # so it's usually a list
         if type(pred) == list:
@@ -294,14 +283,10 @@ class SpadeModel(torch.nn.Module):
         else:
             fake = pred[:pred.size(0) // 2]
             real = pred[pred.size(0) // 2:]
+
         return fake, real
 
     def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps.mul(std) + mu
-
-    def reparameterize_with_seed(self, mu, logvar, seed):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std) + mu

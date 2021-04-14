@@ -1,10 +1,10 @@
 INPUT:
-  TRAIN: '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/'
-  VAL: '/cvlabdata2/cvlab/datasets_anastasiia/Datasets/Dislocations/dislocations_segmentation_dataset/'
+  TRAIN: 'data/dislocations_segmentation_dataset/'
+  VAL: 'data/dislocations_segmentation_dataset/'
   TEST: '/DISLOCATIONS/'
 
 USE_VAE: True
-IS_TRAINING: False
+IS_TRAINING: True
 CONTINUE_TRAINING: False
 
 TRAINING:
@@ -12,7 +12,7 @@ TRAINING:
     INIT_TYPE: 'xavier'
     INIT_VARIANCE: 0.02
     TRAINING_SET: 'dislocations'
-    EXPERIMENT_NAME: 'baseline_most_encoder_loss_attn'
+    EXPERIMENT_NAME: 'baseline'
     LABEL_NC: 4
     CONTAINS_DONT_CARE: False
     NO_INSTANCE: True
@@ -39,14 +39,14 @@ TRAINING:
     LR: 0.0002
     START_EPOCH: 0
     END_EPOCHS: 200
-    BATCH_SIZE: 5
+    BATCH_SIZE: 1
     PLOT_EVERY_X_BATCHES: 20
     OPTIMIZER: Adam
     BETA1: 0.0
     BETA2: 0.9
     NO_TTUR: False
     SAVE_MODEL_STEP: 1
-    WHICH_EPOCH: 300
+    WHICH_EPOCH: 'latest'
     NUM_WORKERS: 8
 
     NORM_E: 'spectralinstance'
@@ -55,7 +55,7 @@ TRAINING:
 
     CROP_SIZE: 512
     ASPECT_RATIO: 1.0
-    NUM_UPSAMPLING_LAYERS: 'most'
+    NUM_UPSAMPLING_LAYERS: 'normal'
 
     NGF: 64
     NUM_D: 6
